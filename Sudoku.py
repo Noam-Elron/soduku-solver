@@ -117,7 +117,7 @@ def tests():
 
 
 def create_grid(grid):
-    "Convert grid into a dict of {square: char} with '0' or '.' for empties."
+    "Convert grid into a dict where key,value pairs look like: {square: char} with '0' or '.' for empty squares."
     grid_squares = [square for square in grid if square in cols or square in "0."]
     assert len(grid_squares) == 81
     return dict(zip(squares, grid_squares))
@@ -135,16 +135,18 @@ def constraint_propagation(grid):
                 return False ## (Fail if assign returns False a.k.a can't assign digit to square.)
     return solution_grid
 
+# Assign basically just calls eliminate on every digit. If it works then returns new grid.
 def assign(solution_grid: list, square: str, digit: str):
     #Return new solution_grid grid, unless a contradiction is detected then return False.
 
-    solution_grid_other_than_digit = solution_grid[square].replace(digit, '')
+    values_other_than_digit = solution_grid[square].replace(digit, '')
     # Try to remove all possibilities of numbers other than the number the square already has. 
-    if all(eliminate(solution_grid, square, value_other_than_digit) for value_other_than_digit in solution_grid_other_than_digit):
+    if all(eliminate(solution_grid, square, value_other_than_digit) for value_other_than_digit in values_other_than_digit):
         return solution_grid
     else:
         return False
 
+# Removes a digit from a square
 def eliminate(solution_grid, square, value_other_than_digit):
 
     if value_other_than_digit not in solution_grid[square]:
@@ -159,8 +161,8 @@ def eliminate(solution_grid, square, value_other_than_digit):
     
     # (1) If a square is reduced to one value, then eliminate that value from the squares peers.
     elif len(solution_grid[square]) == 1:
-        d2 = solution_grid[square]
-        if not all(eliminate(solution_grid, s2, d2) for s2 in peers[square]):
+        digit_to_remove_from_peers = solution_grid[square]
+        if not all(eliminate(solution_grid, s2, digit_to_remove_from_peers) for s2 in peers[square]):
             return False
     
     ## (2) If a unit is reduced to only one place for a value, then put that value there.
@@ -173,20 +175,67 @@ def eliminate(solution_grid, square, value_other_than_digit):
         if len(d_places) == 0:
             return False ## Contradiction: no place for this value
         
-        # If value_other_than_digit appears in one square inside the unit, a.k.a it cant appear in any other square, than value_other_than_digit has to be placed inside that square
+        # If value_other_than_digit appears in only one square inside the unit, that means it cant appear in any other square, than value_other_than_digit has to be placed inside that square
         elif len(d_places) == 1:
             # Tries to place value_other_than_digit inside the specific square. 
             if assign(solution_grid, d_places[0], value_other_than_digit) == False:
                 return False
     return solution_grid
 
-grid = "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......"
+def display(solution_grid):
+    "Display these solution_grid as a 2-D grid."
+    width = 1+max(len(solution_grid[square]) for square in squares)
+    # Creates a list containing three strings: each string is '-' times 3*width
+    line_chars = ['-'*(width*3)]*3
+    # Takes each of those three lines and joins them with a '+' in-between each line
+    line = ('+'.join(line_chars))
+    for row in rows:
+        # Takes each square and puts the solution_grid inside it to fit perfectly center inside width, that way everything will be on the same line.
+        # If a square contains 3 or 6 then a '|' is printed after it, else nothing.
+        print(''.join(solution_grid[row+column].center(width)+('|' if column in '36' else '') for column in cols))
+        # If the row is row C or F, then the first or second layer of squares ended and the separation line is printed
+        if row in 'CF': 
+            print(line)
+    """
+    #Alternative way
+    for square in squares:
+        print(solution_grid[square].center(width) + ('|' if '3' in square or '6' in square else ''), end="")
+        if ("9" in square):
+            print()
 
-#print(create_grid(grid))
-"""d_places = []
-for unit in units["A1"]:
-    for square in unit:
-        if "1" in solution_grid["A1"]:
-            print(f"Square: {square}, Unit: {unit}, Grid: {solution_grid['A1']}")
-            d_places.append(square)
-print(d_places)"""
+        if (square == "C9" or square == "F9"):
+            print(line)
+    """
+
+def backtracking(solution_grid):
+    "Using depth-first search and propagation, try all possible solution_grid."
+    if solution_grid is False:
+        return False # Failed earlier
+    
+    # If every single square inside the grid has only one value, grid is solved.
+    if all(len(solution_grid[s]) == 1 for s in squares): 
+        return solution_grid # Solved!
+
+    # Chose the unfilled square s with the fewest possibilities
+    # Go over all the values of the squares, if a square has more than 1 value -> create a tuple of the square with the amount of digits is still has possible. return square with the 
+    # least amount of possibilities left
+    _ , s = min((len(solution_grid[s]), s) for s in squares if len(solution_grid[s]) > 1)
+
+    # For every digit left in the square from above, try to assign that digit to square, once a digit works assign returns the new grid and backtracking is called again on the
+    # New grid recursively
+    return some(backtracking(assign(solution_grid.copy(), s, d)) for d in solution_grid[s])
+
+def some(seq):
+    "Return some element of seq that is true."
+    for e in seq:
+        if e: return e
+    return False
+
+def solve(grid): 
+    # Solves the given grid by first creating the constraint_propagated grid, and passing that to be backtracked upon
+    return backtracking(constraint_propagation(grid))
+
+grid = "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......"
+#print(constraint_propagation(grid))
+
+display(solve(grid))
