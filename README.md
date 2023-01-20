@@ -1,5 +1,6 @@
 "# soduku-solver" 
-image.png
+![Sudoku GUI](images/my-image.jpg)
+
 
 Adaptive Thresholding Values:
 Blocksize: 9                 # On board_web2 a square's side dissapears - only when size is less than 500x500
