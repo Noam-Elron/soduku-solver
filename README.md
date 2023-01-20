@@ -1,5 +1,5 @@
 "# soduku-solver" 
-![Sudoku GUI](images/my-image.jpg)
+![Sudoku GUI](images/gui-img.jpg)
 
 
 Adaptive Thresholding Values:
