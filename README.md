@@ -1,4 +1,4 @@
-"# soduku-solver" 
+"#soduku-solver" 
 
 
 ![Sudoku GUI](images/gui-img.jpg)
