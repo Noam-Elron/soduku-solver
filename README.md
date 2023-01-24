@@ -1,9 +1,8 @@
-"#soduku-solver" 
-
-
+"# soduku-solver" 
 ![Sudoku GUI](images/gui-img.jpg)
 
-
+Contours return in this order:
+Top Right, Top Left, Bottom Left, Bottom Right
 
 Adaptive Thresholding Values:
 Blocksize: 9                 # On board_web2 a square's side dissapears - only when size is less than 500x500
