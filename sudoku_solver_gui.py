@@ -1,8 +1,9 @@
 import pygame 
 from sudoku_solver import backtracking, constraint_propagation, create_grid, check_validity, findEmpty  
+from sudoku_scanner import FileDialogWindow, SudokuImage
 import time 
 
-def program(board):
+def gui(board):
     # GLOBALS
     SCREEN_WIDTH = 700
     SCREEN_HEIGHT = 625
@@ -219,5 +220,5 @@ def program(board):
     main(board)
 
 if __name__ == "__main__":
-    program("000003017015009008060000000100007000009000200000500004000000020500600340340200000")
+    gui("000003017015009008060000000100007000009000200000500004000000020500600340340200000")
     

@@ -1,6 +1,5 @@
 venv/
 input/
 models/
-testtest.py
-test.py
-predictor.py
+images/
+old_tests
