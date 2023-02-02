@@ -52,6 +52,11 @@ def prediction_show_matplotlib(cells):
         ax.set(title = f"Predicted Number is {pred[i].argmax()}")
     plt.show()
 
+
+def pad_image(image, pixels: int, color: int):
+    image = cv.copyMakeBorder(image, pixels, pixels, pixels, pixels, cv.BORDER_CONSTANT, color)
+    return image
+
 def convert_dtype(img, target_type_min, target_type_max, target_type):
     imin = img.min()
     imax = img.max()

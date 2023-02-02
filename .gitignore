@@ -3,3 +3,4 @@ input/
 models/
 images/
 old_tests
+__pycache__/

@@ -1,6 +1,9 @@
 "# soduku-solver" 
 ![Sudoku GUI](images/gui-img.jpg)
 
+# TODO
+Currently model constantly predicts (1 as 4) and (7 as 8) and (7 as 4), retrain model, maybe different architecture, maybe create model with my own training data.
+
 Contours return in this order:
 Top Right, Top Left, Bottom Left, Bottom Right
 

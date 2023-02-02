@@ -5,7 +5,7 @@ def main():
     win = FileDialogWindow()
     blocksize, c = 23, 7
     image = SudokuImage(win.filename)    
-    grid = image.find_board(blocksize, c)
+    grid = image.return_board()
     gui(grid)
 
 if __name__ == "__main__":

@@ -1,144 +1,77 @@
 import cv2 as cv
 import numpy as np
-import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog as fd
 import re
 import os
-from utils import predict_all, prediction_show_matplotlib, multi_image_show_matplotlib, image_show_matplotlib, convert_dtype
+from fileprompter import FileDialogWindow
+from utils import pad_image, predict_all, prediction_show_matplotlib, multi_image_show_matplotlib, image_show_matplotlib, convert_dtype
 import matplotlib.pyplot as plt
 
-class FileDialogWindow:
-    root = tk.Tk()
-    root.title('Tkinter Open File Dialog')
-    root.resizable(False, False)
-    root.geometry('300x150')
-    def __init__(self):
-        self.filename = None
-        self.file_dialog()
-
-    def file_dialog(self):
-        
-
-        def select_files():
-            filetypes = (
-                ('text files', '*.jpg *.png'),
-                ('All files', '*.*')
-            )
-
-            self.filename = fd.askopenfilename(
-                title='Open a file',
-                initialdir='D:\Downloads\Creation\PythonCreations\soduku-solver\images',
-                filetypes=filetypes)
-
-            if self.filename is not None:
-                self.root.destroy()
-
-
-        # open button
-        open_button = ttk.Button(
-            self.root,
-            text='Open a File',
-            command=select_files
-            
-        )
-
-        open_button.pack(expand=True)
-        
-        
-        # run the application
-        self.root.mainloop() 
 
 class SudokuImage:
-    def __init__(self, filename, pos_x = 500, pos_y = 50):
+    def __init__(self, filename, blocksize = 23, c = 7):
         self.filename = filename
         self.shortened_filename = re.search("(?<=\/)\w+(?=\.+(jpg|png|jpeg))", self.filename).group()
-
-        self.pos_x = pos_x
-        self.pos_y = pos_y
         
         self.img = cv.imread(self.filename)
-        self.cells = None
+        self.__cells = None
 
-    @staticmethod
-    def image_preprocess(img_copy, blocksize, c):
-        img_copy = cv.cvtColor(img_copy, cv.COLOR_BGR2GRAY)
-        img_copy = cv.adaptiveThreshold(img_copy,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, blocksize, c)
-        return img_copy
+        self.blocksize = blocksize
+        self.c = c
 
-    @staticmethod
-    def image_preprocess_alternative(img_copy):
-        img_copy = cv.cvtColor(img_copy, cv.COLOR_BGR2GRAY)  
-        img_copy = cv.GaussianBlur(img_copy, (5, 5), 1)  
-        img_copy = cv.adaptiveThreshold(img_copy, 255, 1, 1, 11, 2)  
-        img_copy = cv.bitwise_not(img_copy)
-        return img_copy
+    def return_board(self):
+        board, board_binary, board_size = self.find_board_location()
+        self.__cells = self.get_cells(board_binary, board_size)
+        digits, digit_positions = self.extract_digits(self.__cells)
 
-    def find_board(self, blocksize, c):
+        #print(digits.shape)
+        #prediction_show_matplotlib(digits)
+        grid = self.predict_board(digits, digit_positions)
+        grid_stringified = ''.join(map(str, grid))
+
+        #multi_image_show_matplotlib([board, board_binary], 2, 1)
+
+        #imgs = [*cells[0:9], *cells_binary[0:9]]
+        #imgs = np.asarray(imgs)    
+        #multi_image_show_matplotlib(imgs, 18, 9)
+
+        return grid_stringified
+
+    def find_board_location(self):
         self.img = cv.resize(self.img, (900, 900))
         
-        image_binary = self.image_preprocess(self.img.copy(), blocksize, c)
+        image_binary = self.image_preprocess(self.img.copy())
         img_for_contour = cv.bitwise_not(image_binary)
         contours, _ = cv.findContours(img_for_contour, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         
         # Returns the list of contours in descending area by contourArea
         contours = sorted(contours, key=cv.contourArea, reverse=True)
-        #Contours return in this order: Top Right, Top Left, Bottom Left, Bottom Right
         # Loops over all the contours, who are already sorted by descending area, until it finds the biggest area that is also a quadrillateral
         for contour in contours:
             peri = cv.arcLength(contour, True)
             approx = cv.approxPolyDP(contour, 0.1*peri, True)
-            area = cv.contourArea(contour)
             if len(approx) == 4:
                 board_loc = approx
                 break 
 
-        #self.img = cv.drawContours(self.img.copy(), board_loc, -1, (0, 255, 0), 3)  
         board_loc = self.reorder(board_loc)
         imgx, imgy, imgw, imgh = cv.boundingRect(board_loc)
         board_size = max(imgw, imgh)
-        #print(f"contourArea: {area}, Board Size: {board_size}")
 
         warped, warped_binary = self.warp_perspective(self.img.copy(), image_binary, board_loc, board_size)
 
         warped = cv.cvtColor(warped, cv.COLOR_BGR2GRAY)
-        cells = self.get_cells(warped, board_size)
-        cells_binary = self.get_cells(warped_binary, board_size)
-        grid_string = self.create_board(cells_binary)
-        #multi_image_show_matplotlib([warped, warped_binary], 2, 1)
 
-        #[print(f"Prediction at Cell #{prediction[1]} is: {prediction[0]}") for prediction in predictions]
-        #imgs = [*cells[0:9], *cells_binary[0:9]]
-        #imgs = np.asarray(imgs)
-    
-        #multi_image_show_matplotlib(imgs, 18, 9)
-        return grid_string
+        return warped, warped_binary, board_size
 
-    def create_board(self, cells):
-            digits_data = self.extract_numbers(cells)
-            digits = [data[0] for data in digits_data]
-            pos_data = [data[1] for data in digits_data]
-            digits = np.reshape(digits, (-1, 28, 28, 1))
-            #print(digits.shape)
-            #prediction_show_matplotlib(digits)
 
-            predictions = predict_all(digits, pos_data)
-            grid = np.zeros(81, int)
-            for prediction, position in predictions:
-                grid[position] = prediction
-            #print(grid)
-            grid_stringified = ''.join(map(str, grid))
-            return grid_stringified
+    def extract_digits(self, cells):
+        """
 
-    @staticmethod
-    def pad_image_even(image, pixels: int, color: int):
-        image = cv.copyMakeBorder(image, pixels, pixels, pixels, pixels, cv.BORDER_CONSTANT, color)
-        return image
-
-    def extract_numbers(self, cells):
+        """
         digits = []
+        positions = []
         for i, cell in enumerate(cells):
-            cell = self.pad_image_even(cell, 5, 0)
+            cell = pad_image(cell, 5, 0)
             #print(cell.shape)
             #image_show_matplotlib(cell, f"Cell #{i}")
             contours, _ = cv.findContours(cell, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
@@ -150,14 +83,17 @@ class SudokuImage:
                 #print(f"Height: {img_width}, Width: {img_height}, Cell Shape: {cell.shape}, Cell #{i}")
                 if not(img_height>3*img_width) and img_width > 0.3*img_height and img_width*img_height > (0.075*(cell.shape[0] * cell.shape[1])) and img_width*img_height < (0.6*(cell.shape[0] * cell.shape[1])):
                     digit = cell[imgy:imgy+img_height, imgx:imgx+img_width]
-                    digit = cv.resize(digit, (28,28))
-                    digit = self.pad_image_even(digit, 5, 0)
-                    digit = cv.resize(digit, (28,28))
+                    digit = cv.resize(digit, (18,18))
+                    digit = pad_image(digit, 5, 0)
+                    #digit = cv.resize(digit, (28,28))
                     #cv.rectangle(cell, (imgx,imgy), (imgx+img_width,imgy+img_height), (0, 255, 0), 3)
                     #image_show_matplotlib(digit, f"Cell #{i}")
-                    digits.append((digit, i))
+                    digits.append(digit)
+                    positions.append(i)
                     break
-        return digits
+
+        digits = np.reshape(digits, (-1, 28, 28, 1))
+        return digits, positions
 
     def get_cells(self, warped_image, board_size):
         cells = self.split_image(warped_image, board_size) 
@@ -169,8 +105,8 @@ class SudokuImage:
 
     def warp_perspective(self, image, image_binary, location, size):
         """Apply a perspective warp - a.k.a creating a new image with a warped perspective so that 
-            the area were interested in (the outerbound sudoku board grid) is the only thing
-            in the new image, but with a birds eye view of it"""
+            the area were interested in(ROI - Region of interest - the outerbound sudoku board grid) is the only thing
+            in the new image, with a birds eye view"""
         #-------------------------- #Top Left#  #Bottom Left# #Bottom Right# #Top Right#
         top_left, top_right, bottom_left, bottom_right = location[0], location[1], location[2], location[3]
 
@@ -184,6 +120,10 @@ class SudokuImage:
 
     
     def split_image(self, warped_image, board_size):
+        """ 
+        Returns all the cells of the sudoku board
+        Takes a warped image w/ the size of the board as arguments
+        """
         cells = []
         cell_width, cell_height = board_size//9, board_size//9
         for y in range(9):
@@ -216,22 +156,41 @@ class SudokuImage:
 
         return np.array([top_left, top_right, bottom_left, bottom_right])
     
+    def predict_board(self, digits, digit_positions):
+        predictions = predict_all(digits, digit_positions)
+        grid = np.zeros(81, int)
+        for prediction, position in predictions:
+            grid[position] = prediction
+        #print(grid)
+        return grid
+
+    def image_preprocess(self, img_copy):
+        img_copy = cv.cvtColor(img_copy, cv.COLOR_BGR2GRAY)
+        img_copy = cv.adaptiveThreshold(img_copy,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, self.blocksize, self.c)
+        return img_copy
+
+    def output_cells(self, num_cells, directory):
+        path = os.path.join(os.getcwd(), f"{directory}")
+        for i in range(num_cells):
+            cell = cv.resize(self.__cells[i], (28, 28))
+            cell_path = os.path.join(path, f'{self.shortened_filename}-{i}.jpg')
+            cv.imwrite(cell_path, cell)
+
     def output_image(self, image):
         path = os.path.join(os.getcwd(), "images")
         cell_path = os.path.join(path, f'{self.shortened_filename}-output.jpg')
         cv.imwrite(cell_path, image)
 
-    def image_show(self, blocksize, c):
-        self.find_board(blocksize, c)    
+    def image_show(self, pos_x = 500, pos_y = 50):
+        self.find_board(self.blocksize, self.c)    
         cv.imshow(f"{self.filename}", self.img)  
-        cv.moveWindow(f"{self.filename}", self.pos_x, self.pos_y)
+        cv.moveWindow(f"{self.filename}", pos_x, pos_y)
         cv.waitKey(0)
 
 def main():
     win = FileDialogWindow()
-    blocksize, c = 23, 7
     image = SudokuImage(win.filename)    
-    grid = image.find_board(blocksize, c)
+    grid = image.return_board()
 
     
 
