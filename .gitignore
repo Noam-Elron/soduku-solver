@@ -1,6 +1,6 @@
 venv/
 input/
 models/
-images/
 old_tests
 __pycache__/
+dataset/*

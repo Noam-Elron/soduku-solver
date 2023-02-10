@@ -1,11 +1,9 @@
 "# soduku-solver" 
 ![Sudoku GUI](images/gui-img.jpg)
 
-# TODO
-Currently model constantly predicts (1 as 4) and (7 as 8) and (7 as 4), retrain model, maybe different architecture, maybe create model with my own training data.
+Currently model constantly predicts (1 as 4) and (7 as 8) and (7 as 4), next attempt will be with a model created on a custom dataset
+that i will make.
 
-Contours return in this order:
-Top Right, Top Left, Bottom Left, Bottom Right
 
 Adaptive Thresholding Values:
 Blocksize: 9                 # On board_web2 a square's side dissapears - only when size is less than 500x500
@@ -22,3 +20,4 @@ C: 6
 
 Blocksize: 14               # Same as above, better on 500x500 for sure
 C: 7
+

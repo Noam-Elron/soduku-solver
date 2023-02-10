@@ -19,9 +19,8 @@ class SudokuImage:
         self.c = c
 
     def return_board(self):
-        board, board_binary, board_size = self.find_board_location()
-        self.__cells = self.get_cells(board_binary, board_size)
-        digits, digit_positions = self.extract_digits(self.__cells)
+        cells = self.return_all_cells()
+        digits, digit_positions = self.extract_digits(cells)
 
         #print(digits.shape)
         #prediction_show_matplotlib(digits)
@@ -36,6 +35,11 @@ class SudokuImage:
 
         return grid_stringified
 
+    def return_all_cells(self):
+        board, board_binary, board_size = self.find_board_location()
+        self.__cells = self.get_cells(board_binary, board_size)
+        return self.__cells
+        
     def find_board_location(self):
         self.img = cv.resize(self.img, (900, 900))
         
