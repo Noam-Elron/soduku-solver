@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 class SudokuImage:
     def __init__(self, filename, blocksize = 23, c = 7):
         self.filename = filename
-        self.shortened_filename = re.search("(?<=\/)\w+(?=\.+(jpg|png|jpeg))", self.filename).group()
+        self.shortened_filename = re.search(r"(?<=(\/|\\))\w+(?=\.+(jpg|png|jpeg))", self.filename).group()
         
         self.img = cv.imread(self.filename)
         self.__cells = None
@@ -19,15 +19,14 @@ class SudokuImage:
         self.c = c
 
     def return_board(self):
-        cells = self.return_all_cells()
+        cells = self.return_all_cells(binary=True)
+        #multi_image_show_matplotlib(self.__cells, 20, 5)
+
         digits, digit_positions = self.extract_digits(cells)
 
-        #print(digits.shape)
         #prediction_show_matplotlib(digits)
         grid = self.predict_board(digits, digit_positions)
         grid_stringified = ''.join(map(str, grid))
-
-        #multi_image_show_matplotlib([board, board_binary], 2, 1)
 
         #imgs = [*cells[0:9], *cells_binary[0:9]]
         #imgs = np.asarray(imgs)    
@@ -35,9 +34,13 @@ class SudokuImage:
 
         return grid_stringified
 
-    def return_all_cells(self):
+    def return_all_cells(self, binary=True):
         board, board_binary, board_size = self.find_board_location()
-        self.__cells = self.get_cells(board_binary, board_size)
+        multi_image_show_matplotlib([board, board_binary], 2, 1)
+        if binary==True:
+            self.__cells = self.get_cells(board_binary, board_size)
+        else:
+            self.__cells = self.get_cells(board, board_size)
         return self.__cells
         
     def find_board_location(self):
@@ -51,13 +54,17 @@ class SudokuImage:
         contours = sorted(contours, key=cv.contourArea, reverse=True)
         # Loops over all the contours, who are already sorted by descending area, until it finds the biggest area that is also a quadrillateral
         for contour in contours:
+            #self.show_contour(self.img, contour)
             peri = cv.arcLength(contour, True)
             approx = cv.approxPolyDP(contour, 0.1*peri, True)
             if len(approx) == 4:
                 board_loc = approx
                 break 
-
-        board_loc = self.reorder(board_loc)
+        try:
+            board_loc = self.reorder(board_loc)
+        except UnboundLocalError:
+            #raise Exception("Images bad, no contour with 4 vertexes was found A.K.A unable to find sudoku boundary, try again with different image")
+            return
         imgx, imgy, imgw, imgh = cv.boundingRect(board_loc)
         board_size = max(imgw, imgh)
 
@@ -191,12 +198,16 @@ class SudokuImage:
         cv.moveWindow(f"{self.filename}", pos_x, pos_y)
         cv.waitKey(0)
 
+    def show_contour(self, img, contour):
+        copy = cv.drawContours(img.copy(), contour, -1, 255, 3)
+        cv.imshow(f"{self.shortened_filename}-contour", copy)
+        cv.waitKey(0)
+
 def main():
-    win = FileDialogWindow()
+    win = FileDialogWindow("dataset")
     image = SudokuImage(win.filename)    
     grid = image.return_board()
 
-    
 
 
     
