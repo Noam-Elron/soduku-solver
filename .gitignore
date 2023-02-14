@@ -4,3 +4,5 @@ models/
 old_tests
 __pycache__/
 dataset/*
+dataset/
+good_dataset/
