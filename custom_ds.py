@@ -6,21 +6,36 @@ import os
 from utils import multi_image_show_matplotlib, pad_image
 import glob 
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Union
+import pandas as pd
 
-def get_all_data_pairs() -> List[Tuple[str, str]]:
+def get_all_data_pairs(directory: str = "dataset") -> List[Tuple[str, str]]:
     """
-    Returns a zipped list of tuples containing matching pairs of (img, data).
+    Retrieves all image, data file pairs.
+
+    Parameters:
+        directory(str) - default = "dataset" -- name of folder containing image,data pairs
+
+    Returns:
+        2D Array where each element is a Tuple that contains filepaths for a IMAGE,DATA pair.
+
+    Raises:
+        AttributeError - Incompatible/Misnamed file in given directory 
     """
     cur_dir = os.getcwd()
-    path = os.path.join(cur_dir, "dataset")
+    path = os.path.join(cur_dir, directory)
     # Normalize filepath to work for both windows and linux
     path = os.path.normcase(path) 
     imgs = []
     data = []
     files = glob.glob(os.path.join(path, "*"))
-    reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\"  else r"(?<=\/image)[0-9]+(?=.)"
-    files = sorted(files, key = lambda file: int(re.search(reg_exp, file).group()))
+    #print(files)
+    reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\" else r"(?<=\/image)[0-9]+(?=.)"
+    #print(reg_exp, "\n", os.sep)
+    try:
+        files = sorted(files, key = lambda file: int(re.search(r"(?<=(\\|\/)image)[0-9]+(?=.)", file).group()))
+    except AttributeError:
+        raise AttributeError("Incompatible/misnamed file found in directory")
     for file in files:
         if file.lower().endswith(".jpg"):
             imgs.append(file)
@@ -30,11 +45,18 @@ def get_all_data_pairs() -> List[Tuple[str, str]]:
     pairs = list(zip(imgs, data))
     return pairs
 
-def return_cells(filename: str):
-    """ Takes a filename and returns a flattened array of all"""
+def return_cells(filename: str) -> List[List[int]]:
+    """
+    Returns all cells extracted from an image
+    
+    Parameters:
+        filename(str): path to an image(specifically a sudoku image)
+
+    Returns:
+        2D array of shape [81, 784] 
+    """
     img = SudokuImage(filename)
     cells = img.return_all_cells()
-    print(cells.shape)
     # Resize all cells to be a 28x28 image to be uniform with 
     #multi_image_show_matplotlib(cells, 20, 4)
     cells = [cv.resize(cells[i], (18,18)) for i in range(len(cells))]  
@@ -42,19 +64,32 @@ def return_cells(filename: str):
     #multi_image_show_matplotlib(cells, 20, 4)
     cells = np.reshape(cells, (-1, 28*28)) 
     return cells
-"""
-TODO
-1) Convert all dat files to a better format/read the data(digits) from the dat files #DONE
-2) Create rename_cells function which takes the data and renames the cell into image##-digit
-3) Convert array of total_cells in output_csv function to csv file.
-4) Test out with, say 3 images to not create a cluttered csv file.
-"""
+
+def label_cells(cells: List[List[int]], labels: List[str]) -> List[Union[str, int]]:
+    """
+    Adds a label to each cell image. 
+
+    Parameters:
+        cells(List[List[int]]) -- 2D Array containing 81 1D array of ints that make up the pixels of a 28*28 image of a given cell. \n
+        labels(List[str]) -- Array containing a string representation of the digit, corresponding to a cell that appears in the list of cells. 
+
+    Returns:
+        2D Array where each element is an array that contains the label and all the cell pixels. 
+    """
+    return [[labels[i]] + cell.tolist() for i, cell in enumerate(cells)]
+
 
 def read_dat(data: str) -> List[str]:
     """
-    Returns all the digits belonging to the associated(same filename) sudoku board image. 
-    Receives file path for a .dat file that contains the mentioned digits. 
+    Return all the digits belonging to the associated sudoku board image. 
+
+    Parameters:
+        data(str) -- filepath to a .dat file 
+
+    Returns:
+        1D Array of digits, each index of the array is mapped to a position in a sudoku board.
     """
+    
     values = []
     with open(data, "r") as data:
         lines = data.readlines()
@@ -81,12 +116,24 @@ def output_csv(pairs: List[Tuple[str, str]]):
     # TODO : Convert cells to csv
     # Writeout csv after finishing.
 
-def look_at_dataset():
+def look_at_dataset(directory: str):
+    """
+    Shows every image's warped perspective that is inside the given directory
+
+    Parameters:
+        directory(str): directory that contains images whose names start in image followed by a number
+
+    Returns:
+        Nothing
+    
+    Raises:
+        Nothing
+    """
+    import glob
     cur_dir = os.getcwd()
-    path = os.path.join(cur_dir, "good_dataset")
+    path = os.path.join(cur_dir, directory)
     # Normalize filepath to work for both windows and linux
     path = os.path.normcase(path) 
-    import glob
     files = glob.glob(os.path.join(path, "*.jpg"))
     reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\"  else r"(?<=\/image)[0-9]+(?=.)"
     files = sorted(files, key = lambda file: int(re.search(reg_exp, file).group()))
@@ -97,18 +144,61 @@ def look_at_dataset():
             board, board_binary, board_size = img.find_board_location()
             multi_image_show_matplotlib([board, board_binary], 2, 1)
         except:
+            # Doesn't raise an Exception in order to debug bad images faster.
             print(f"{img.shortened_filename}-problematic")
             continue
+
+def return_all_data() -> List[Union[str, int]]:
+    """
+    Combines every single cell with a label
+
+    Parameters:
+        None
+
+    Returns:
+        Returns a 2D array where each element is a list containing a label and 784 which make up an image of a 28*28 cell
+    
+    Raises:
+        Nothing
+    """
+
+    df_data = []
+    pairs = get_all_data_pairs("dataset")
+    for img, data in pairs:
+        labels = read_dat(data)
+        cells = return_cells(img)
+        df_data += label_cells(cells, labels)
+
+    return df_data
+    # List comprehension way just to test, plus in case in need of speed up as list comprehension is almost always much faster than append/concat
+    #return [lableded_cell for img, data in pairs for lableded_cell in label_cells(return_cells(img), read_dat(data))]
+
+def create_df(all_data: List[Union[str, int]]):
+    """
+    Creates pandas dataframe using given data
+
+    Parameters:
+        all_data - 2D array of elements that contain a label and 784 pixels.
+
+    Returns:
+        Pandas dataframe object
+    
+    Raises:
+        Nothing
+    """
+
+    row_names = ["label"] + [f"pixel{i}" for i in range(1, 28*28 + 1)]
+    df = pd.DataFrame(all_data, columns=[*row_names])
+    return df
 
 def main():
     #win = FileDialogWindow()
     #make_cells(win.filename)
-    pairs = get_all_data_pairs()
-    pair = pairs[0]
-    print(pair)
-    img, data = pair[0], pair[1]
-    #read_dat(data)
-    return_cells(img)
+
+        
+    df = create_df(return_all_data())
+    df.to_csv('my_train_data.csv', index=False)
+    #print(df)  
 
 
 
