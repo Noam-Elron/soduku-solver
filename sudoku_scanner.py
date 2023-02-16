@@ -36,7 +36,7 @@ class SudokuImage:
 
     def return_all_cells(self, binary=True):
         board, board_binary, board_size = self.find_board_location()
-        multi_image_show_matplotlib([board, board_binary], 2, 1)
+        #multi_image_show_matplotlib([board, board_binary], 2, 1)
         if binary==True:
             self.__cells = self.get_cells(board_binary, board_size)
         else:
