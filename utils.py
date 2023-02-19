@@ -36,7 +36,7 @@ def predict(image):
 
 def predict_all(images, positions):
     from tensorflow.keras.models import load_model
-    model = load_model('models/attempt.h5')
+    model = load_model('models/combined_dataset2.h5')
     predictions = model.predict(images)
     predict_list = [[predictions[i].argmax(), positions[i]] for i, pred in enumerate(predictions)]
     return predict_list    
@@ -44,7 +44,7 @@ def predict_all(images, positions):
 
 def prediction_show_matplotlib(cells):
     from tensorflow.keras.models import load_model
-    model = load_model('models/attempt.h5')
+    model = load_model('models/combined_dataset2.h5')
     pred = model.predict(cells)
     fig, axis = plt.subplots(4, 4, figsize=(12, 14))
     for i, ax in enumerate(axis.flat):
@@ -151,4 +151,22 @@ def s(img):
                         images.append(digit_img)
                         break
         return images
- 
+
+def fix_data_files() -> None:
+    """
+    Helper function to remove first two lines from .dat files as the downloaded .dat files came with two lines of useless info. 
+
+    Parameters:
+        None
+
+    Returns:
+        None, rewrites files.
+    """
+
+    pairs = get_all_data_pairs("dataset")
+    for img, data in pairs:
+        with open(data, "r+") as file:
+            lines = file.readlines()
+            file.seek(0)
+            file.truncate()
+            file.writelines(lines[2:])

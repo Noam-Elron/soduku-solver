@@ -21,14 +21,14 @@ from keras.utils import to_categorical
 import os
 print(os.listdir('./input'))
 
-train = pd.read_csv('./input/train.csv')
-test = pd.read_csv('./input/test.csv')
-sub = pd.read_csv('./input/sample_submission.csv')
+train = pd.read_csv('./input/custom.csv')
+#test = pd.read_csv('./input/test.csv')
+
 
 X = train.drop(['label'], 1).values
 y = train['label'].values
 
-X = X / 255.0
+
 
 # Reshape image in 3 dimensions (height = 28px, width = 28px , canal = 1)
 # canal = 1 => For gray scale
@@ -99,13 +99,13 @@ test_gen = datagen.flow(X_test, y_test, batch_size=128)
 
 #model.fit(X, y, batch_size=batch_size, validation_split=0.2, epochs=10)
 
-epochs = 100
+epochs = 50
 batch_size = 128
 train_steps = X_train.shape[0] // batch_size
 valid_steps = X_test.shape[0] // batch_size
 
 es = keras.callbacks.EarlyStopping(
-        monitor="val_acc", # metrics to monitor
+        monitor="val_accuracy", # metrics to monitor
         patience=10, # how many epochs before stop
         verbose=1,
         mode="max", # we need the maximum accuracy.
@@ -113,7 +113,7 @@ es = keras.callbacks.EarlyStopping(
      )
 
 rp = keras.callbacks.ReduceLROnPlateau(
-        monitor="val_acc",
+        monitor="val_accuracy",
         factor=0.2,
         patience=3,
         verbose=1,
@@ -129,6 +129,7 @@ history = model.fit_generator(train_gen,
                               validation_steps = valid_steps, 
                               callbacks=[es, rp])
 
+model.save("models/combined_dataset3.h5")
 y_pred = model.predict(X_test)
 X_test__ = X_test.reshape(X_test.shape[0], 28, 28)
 
@@ -136,5 +137,5 @@ fig, axis = plt.subplots(4, 4, figsize=(12, 14))
 for i, ax in enumerate(axis.flat):
     ax.imshow(X_test__[i], cmap='binary')
     ax.set(title = f"Real Number is {y_test[i].argmax()}\nPredict Number is {y_pred[i].argmax()}");
+plt.show()
 
-model.save("attempt.h5")

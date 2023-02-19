@@ -3,7 +3,7 @@ from sudoku_scanner import SudokuImage
 import cv2 as cv
 import numpy as np
 import os
-from utils import multi_image_show_matplotlib, pad_image
+from utils import multi_image_show_matplotlib, pad_image, image_show_matplotlib
 import glob 
 import re
 from typing import List, Tuple, Union
@@ -78,7 +78,6 @@ def label_cells(cells: List[List[int]], labels: List[str]) -> List[Union[str, in
     """
     return [[labels[i]] + cell.tolist() for i, cell in enumerate(cells)]
 
-
 def read_dat(data: str) -> List[str]:
     """
     Return all the digits belonging to the associated sudoku board image. 
@@ -94,27 +93,13 @@ def read_dat(data: str) -> List[str]:
     with open(data, "r") as data:
         lines = data.readlines()
         # Ignore first two lines
-        for line in lines[2:]:
+        for line in lines:
             # Remove the \n using the strip method and since all the digits are whitespace separated strings, split them using the split method using a " " - whitespace separator
             digits = line.strip().split(" ")
             values.append(digits)
     # values array is a 2d array where each of its elements is an array - "row" of chars. Double list comprehension to unpack the values array into a 1D array of just digits. Easier to manipulate afterwards. 
     output = [digit for row in values for digit in row]
     return output
-
-def rename_cells(cells, data):
-    pass
-
-def output_csv(pairs: List[Tuple[str, str]]):
-
-    for (img, data) in pairs:
-        cells = return_cells(img)
-        labels = read_dat(data)
-
-        # Need to create pandas dataframe where column 0 is Labels, and every column afterwards is a single pixel value. Maybe make column 0 filename?
-
-    # TODO : Convert cells to csv
-    # Writeout csv after finishing.
 
 def look_at_dataset(directory: str):
     """
@@ -187,18 +172,106 @@ def create_df(all_data: List[Union[str, int]]):
         Nothing
     """
 
-    row_names = ["label"] + [f"pixel{i}" for i in range(1, 28*28 + 1)]
+    row_names = ["label"] + [f"pixel{i}" for i in range(0, 28*28)]
     df = pd.DataFrame(all_data, columns=[*row_names])
     return df
+
+def reformat_data(data: str) -> List[str]:
+    """
+    Return all the digits belonging to the associated sudoku board image. 
+
+    Parameters:
+        data(str) -- filepath to a .dat file 
+
+    Returns:
+        1D Array of digits, each index of the array is mapped to a position in a sudoku board.
+    """
+    
+    values = []
+    with open(data, "r") as data:
+        lines = data.readlines()
+        # Ignore first two lines
+        for line in lines[2:]:
+            # Remove the \n using the strip method and since all the digits are whitespace separated strings, split them using the split method using a " " - whitespace separator
+            digits = line.strip().split(" ")
+            values.append(digits)
+    # values array is a 2d array where each of its elements is an array - "row" of chars. Double list comprehension to unpack the values array into a 1D array of just digits. Easier to manipulate afterwards. 
+    output = [digit for row in values for digit in row]
+    return output
+
+def combine_dataframes(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    """
+    Return combined dataframe
+
+    Parameters:
+        df1(pd.Dataframe): Dataframe to be at the beginning of the new Dataframe
+        df2(pd.Dataframe): Dataframe to be at the end of the new Dataframe
+    Returns:
+        New combined Dataframe
+    """
+
+    return pd.concat([df1, df2], axis=0)
+
+def rename_files(directory):
+    """
+    Retrieves all image, data file pairs.
+
+    Parameters:
+        directory(str) - default = "dataset" -- name of folder containing image,data pairs
+
+    Returns:
+        2D Array where each element is a Tuple that contains filepaths for a IMAGE,DATA pair.
+
+    Raises:
+        AttributeError - Incompatible/Misnamed file in given directory 
+    """
+    cur_dir = os.getcwd()
+    path = os.path.join(cur_dir, directory)
+    # Normalize filepath to work for both windows and linux
+    path = os.path.normcase(path) 
+
+    files = glob.glob(os.path.join(path, "*"))
+    #print(files)
+    reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\" else r"(?<=\/image)[0-9]+(?=.)"
+    #print(reg_exp, "\n", os.sep)
+    try:
+        files = sorted(files, key = lambda file: int(re.search(r"(?<=(\\|\/)image)[0-9]+(?=.)", file).group()))
+    except AttributeError:
+        raise AttributeError("Incompatible/misnamed file found in directory")
+    
+    img_number = 1
+    dat_number = 1
+    for file in files:
+        if file.lower().endswith(".jpg"):
+            os.rename(file, f"dataset\image{img_number}.jpg")
+            img_number += 1
+        elif file.lower().endswith(".dat"):
+            os.rename(file, f"dataset\image{dat_number}.dat")
+            dat_number += 1
+    
+
+
+def output_csv(directory, name, combined=False):
+    """
+    Output new csv dataset.
+
+    Parameters:
+        None
+
+    Returns:
+        None, outputs csv file.
+    """
+
+    data = return_all_data()
+    df = create_df(data)
+    df = combine_dataframes(pd.read_csv('./input/train.csv'), df) if combined else df
+    df.to_csv(f'./{directory}/{name}.csv', index=False)
 
 def main():
     #win = FileDialogWindow()
     #make_cells(win.filename)
-
-        
-    df = create_df(return_all_data())
-    df.to_csv('my_train_data.csv', index=False)
-    #print(df)  
+    output_csv("input", "custom_combined", combined=True)
+    #rename_files("dataset")
 
 
 

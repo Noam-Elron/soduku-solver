@@ -11,7 +11,16 @@ class FileDialogWindow:
     def __init__(self, directory=None):
         self.filename = None
         self.directory = directory
+        self.path = self.get_path()
         self.file_dialog()
+
+    def get_path(self):
+        if self.directory != None:
+            path = os.path.join(os.getcwd(), self.directory)
+        else:
+            path = os.getcwd()
+        print(path)
+        return path
 
     def file_dialog(self):
         
@@ -24,7 +33,7 @@ class FileDialogWindow:
             # Normalize os path so that it auto configures \ for windows and // for linux
             self.filename = os.path.normcase(fd.askopenfilename(
                 title='Open a file',
-                initialdir=os.path.join(os.getcwd(), self.directory),
+                initialdir=self.path,
                 filetypes=filetypes))
 
             if self.filename is not None:
