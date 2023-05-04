@@ -1,9 +1,16 @@
+import os
+import glob
+import time
+import math
+import re
+from typing import List, Tuple, Union
+
 import numpy as np
 import matplotlib as mp
 import matplotlib.pyplot as plt
-import math
 import cv2 as cv
-import time
+
+
 
 def image_show_matplotlib(image, title="Image"):
     fig = plt.figure()
@@ -76,6 +83,40 @@ def return_cells(filename: str) -> List[List[int]]:
     #multi_image_show_matplotlib(cells, 20, 4)
     cells = np.reshape(cells, (-1, 28*28)) 
     return cells
+
+def look_at_dataset(directory: str, reverse: bool = False):
+    from sudoku_scanner import SudokuImage
+
+    """
+    Shows every image's warped perspective that is inside the given directory
+
+    Parameters:
+        directory(str): directory that contains images whose names start in image followed by a number
+
+    Returns:
+        Nothing
+    
+    Raises:
+        Nothing
+    """
+    cur_dir = os.getcwd()
+    path = os.path.join(cur_dir, directory)
+    # Normalize filepath to work for both windows and linux
+    path = os.path.normcase(path) 
+    files = glob.glob(os.path.join(path, "*.jpg")) + glob.glob(os.path.join(path, "*.jpeg")) + glob.glob(os.path.join(path, "*.png"))
+    # Sorting the files based on number.
+    reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\"  else r"(?<=\/image)[0-9]+(?=.)"
+    files = sorted(files, key = lambda file: int(re.search(reg_exp, file).group()), reverse=reverse)
+    for file in files:
+        img = SudokuImage(file)
+        print(img.shortened_filename)
+        try:
+            board, board_binary, board_size = img.find_board_location()
+            multi_image_show_matplotlib([board, board_binary], 2, 1)
+        except:
+            # Doesn't raise an Exception in order to debug bad images faster.
+            print(f"{img.shortened_filename}-problematic")
+            continue
 
 def convert_dtype(img, target_type_min, target_type_max, target_type):
     imin = img.min()
