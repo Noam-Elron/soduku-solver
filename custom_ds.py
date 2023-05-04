@@ -9,9 +9,12 @@ import re
 from typing import List, Tuple, Union
 import pandas as pd
 
+
 """
+
 This file is simply for readying data taken from an online repository which contains pairs of sudoku boards images 
 along with a data file that contains a string version of whats inside the file.
+
 """
 
 
@@ -34,18 +37,13 @@ def get_all_data_pairs(directory: str = "dataset") -> List[Tuple[str, str]]:
     path = os.path.normcase(path) 
     imgs = []
     data = []
+    # Create a list of all files in given directory path
     files = glob.glob(os.path.join(path, "*"))
-    """
-    #print(files)
-    reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\" else r"(?<=\/image)[0-9]+(?=.)"
-    #print(reg_exp, "\n", os.sep)
-    try:
-        files = sorted(files, key = lambda file: int(re.search(r"(?<=(\\|\/)image)[0-9]+(?=.)", file).group()))
-    except AttributeError:
-        raise AttributeError("Incompatible/misnamed file found in directory")
-    """
+        
     for file in files:
         _, file_extension = os.path.splitext(file)
+        if file_extension not in [".jpg", ".jpeg", ".png", ".dat"]:
+            raise AttributeError("Incompatible/misnamed file found in directory")
         if file_extension in [".jpg", ".jpeg", ".png"]:
             imgs.append(file)
         elif file.lower().endswith(".dat"):
@@ -70,7 +68,7 @@ def label_cells(cells: List[List[int]], labels: List[str]) -> List[Union[str, in
 
 def read_dat(data: str) -> List[str]:
     """
-    Return all the digits belonging to the associated sudoku board image. 
+    Return all the digits belonging to the associated sudoku board image. Used to normalize/convert the original .dat files into an easier format
 
     Parameters:
         data(str) -- filepath to a .dat file 
@@ -91,37 +89,6 @@ def read_dat(data: str) -> List[str]:
     output = [digit for row in values for digit in row]
     return output
 
-def look_at_dataset(directory: str):
-    """
-    Shows every image's warped perspective that is inside the given directory
-
-    Parameters:
-        directory(str): directory that contains images whose names start in image followed by a number
-
-    Returns:
-        Nothing
-    
-    Raises:
-        Nothing
-    """
-    import glob
-    cur_dir = os.getcwd()
-    path = os.path.join(cur_dir, directory)
-    # Normalize filepath to work for both windows and linux
-    path = os.path.normcase(path) 
-    files = glob.glob(os.path.join(path, "*.jpg"))
-    reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\"  else r"(?<=\/image)[0-9]+(?=.)"
-    files = sorted(files, key = lambda file: int(re.search(reg_exp, file).group()))
-    for file in files:
-        img = SudokuImage(file)
-        print(img.shortened_filename)
-        try:
-            board, board_binary, board_size = img.find_board_location()
-            multi_image_show_matplotlib([board, board_binary], 2, 1)
-        except:
-            # Doesn't raise an Exception in order to debug bad images faster.
-            print(f"{img.shortened_filename}-problematic")
-            continue
 
 def return_all_data() -> List[Union[str, int]]:
     """
@@ -261,11 +228,14 @@ def output_csv(directory, name, combined=False):
     df.to_csv(f'./{directory}/{name}.csv', index=False)
 
 def extend_dataset():
+    pass
+    # TODO, iterate over every file in dataset directory, rotate the image 90 degrees 3 times and each time append that
+    # To a new folder - ext_dataset. Also rename each file to be image##-1, image##-2 etc etc.
 
 
 
 def main():
-    #win = FileDialogWindow()
+    win = FileDialogWindow()
     #make_cells(win.filename)
     #output_csv("input", "custom_combined", combined=True)
     
