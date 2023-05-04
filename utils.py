@@ -57,6 +57,26 @@ def pad_image(image, pixels: int, color: int):
     image = cv.copyMakeBorder(image, pixels, pixels, pixels, pixels, cv.BORDER_CONSTANT, color)
     return image
 
+def return_cells(filename: str) -> List[List[int]]:
+    """
+    Returns all cells extracted from an image
+    
+    Parameters:
+        filename(str): path to an image(specifically a sudoku image)
+
+    Returns:
+        2D array of shape [81, 784] 
+    """
+    img = SudokuImage(filename)
+    cells = img.return_all_cells()
+    # Resize all cells to be a 28x28 image to be uniform with 
+    #multi_image_show_matplotlib(cells, 20, 4)
+    cells = [cv.resize(cells[i], (18,18)) for i in range(len(cells))]  
+    cells = [pad_image(cell, 5, 0) for cell in cells]
+    #multi_image_show_matplotlib(cells, 20, 4)
+    cells = np.reshape(cells, (-1, 28*28)) 
+    return cells
+
 def convert_dtype(img, target_type_min, target_type_max, target_type):
     imin = img.min()
     imax = img.max()

@@ -3,7 +3,7 @@ from sudoku_scanner import SudokuImage
 import cv2 as cv
 import numpy as np
 import os
-from utils import multi_image_show_matplotlib, pad_image, image_show_matplotlib
+from utils import multi_image_show_matplotlib, pad_image, image_show_matplotlib, return_cells
 import glob 
 import re
 from typing import List, Tuple, Union
@@ -54,26 +54,6 @@ def get_all_data_pairs(directory: str = "dataset") -> List[Tuple[str, str]]:
     pairs = list(zip(imgs, data))
     return pairs
 
-
-def return_cells(filename: str) -> List[List[int]]:
-    """
-    Returns all cells extracted from an image
-    
-    Parameters:
-        filename(str): path to an image(specifically a sudoku image)
-
-    Returns:
-        2D array of shape [81, 784] 
-    """
-    img = SudokuImage(filename)
-    cells = img.return_all_cells()
-    # Resize all cells to be a 28x28 image to be uniform with 
-    #multi_image_show_matplotlib(cells, 20, 4)
-    cells = [cv.resize(cells[i], (18,18)) for i in range(len(cells))]  
-    cells = [pad_image(cell, 5, 0) for cell in cells]
-    #multi_image_show_matplotlib(cells, 20, 4)
-    cells = np.reshape(cells, (-1, 28*28)) 
-    return cells
 
 def label_cells(cells: List[List[int]], labels: List[str]) -> List[Union[str, int]]:
     """
