@@ -1,9 +1,6 @@
 "# soduku-solver" 
 ![Sudoku GUI](images/gui-img.jpg)
 
-Currently model constantly predicts (1 as 4) and (7 as 8) and (7 as 4), next attempt will be with a model created on a custom dataset
-that i will make.
-
 
 Adaptive Thresholding Values:
 Blocksize: 9                 # On board_web2 a square's side dissapears - only when size is less than 500x500

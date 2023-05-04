@@ -9,6 +9,12 @@ import re
 from typing import List, Tuple, Union
 import pandas as pd
 
+"""
+This file is simply for readying data taken from an online repository which contains pairs of sudoku boards images 
+along with a data file that contains a string version of whats inside the file.
+"""
+
+
 def get_all_data_pairs(directory: str = "dataset") -> List[Tuple[str, str]]:
     """
     Retrieves all image, data file pairs.
@@ -29,6 +35,7 @@ def get_all_data_pairs(directory: str = "dataset") -> List[Tuple[str, str]]:
     imgs = []
     data = []
     files = glob.glob(os.path.join(path, "*"))
+    """
     #print(files)
     reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\" else r"(?<=\/image)[0-9]+(?=.)"
     #print(reg_exp, "\n", os.sep)
@@ -36,14 +43,17 @@ def get_all_data_pairs(directory: str = "dataset") -> List[Tuple[str, str]]:
         files = sorted(files, key = lambda file: int(re.search(r"(?<=(\\|\/)image)[0-9]+(?=.)", file).group()))
     except AttributeError:
         raise AttributeError("Incompatible/misnamed file found in directory")
+    """
     for file in files:
-        if file.lower().endswith(".jpg"):
+        _, file_extension = os.path.splitext(file)
+        if file_extension in [".jpg", ".jpeg", ".png"]:
             imgs.append(file)
         elif file.lower().endswith(".dat"):
             data.append(file)
-    
+        
     pairs = list(zip(imgs, data))
     return pairs
+
 
 def return_cells(filename: str) -> List[List[int]]:
     """
@@ -212,7 +222,7 @@ def combine_dataframes(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
 
     return pd.concat([df1, df2], axis=0)
 
-def rename_files(directory):
+def rename_files(directory, bottom_range):
     """
     Retrieves all image, data file pairs.
 
@@ -229,23 +239,26 @@ def rename_files(directory):
     path = os.path.join(cur_dir, directory)
     # Normalize filepath to work for both windows and linux
     path = os.path.normcase(path) 
-
+    
     files = glob.glob(os.path.join(path, "*"))
-    #print(files)
+    """
     reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\" else r"(?<=\/image)[0-9]+(?=.)"
     #print(reg_exp, "\n", os.sep)
     try:
         files = sorted(files, key = lambda file: int(re.search(r"(?<=(\\|\/)image)[0-9]+(?=.)", file).group()))
     except AttributeError:
         raise AttributeError("Incompatible/misnamed file found in directory")
+    """
     
-    img_number = 1
-    dat_number = 1
+    img_number = bottom_range
+    dat_number = bottom_range
     for file in files:
-        if file.lower().endswith(".jpg"):
+        _, file_extension = os.path.splitext(file)
+        print(file, file_extension)
+        if file_extension in [".jpg", ".jpeg", ".png"]:
             os.rename(file, f"dataset\image{img_number}.jpg")
             img_number += 1
-        elif file.lower().endswith(".dat"):
+        elif file_extension == ".dat":
             os.rename(file, f"dataset\image{dat_number}.dat")
             dat_number += 1
     
@@ -267,12 +280,15 @@ def output_csv(directory, name, combined=False):
     df = combine_dataframes(pd.read_csv('./input/train.csv'), df) if combined else df
     df.to_csv(f'./{directory}/{name}.csv', index=False)
 
+def extend_dataset():
+
+
+
 def main():
     #win = FileDialogWindow()
     #make_cells(win.filename)
-    output_csv("input", "custom_combined", combined=True)
-    #rename_files("dataset")
-
+    #output_csv("input", "custom_combined", combined=True)
+    
 
 
 if __name__ == "__main__":
