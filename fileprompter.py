@@ -20,21 +20,18 @@ class FileDialogWindow:
     """
 
     # TODO - Create failsafes incase direcory entered incorrectly or root used incorrectly.
-    root = tk.Tk()
-    root.title('Tkinter Open File Dialog')
-    root.resizable(False, False)
-    root.geometry('300x150')
-    def __init__(self, directory=None, root=False):
+    def __init__(self, directory=None):
         self.filename = None
         self.directory = directory
-        self.root = root
+        self.root = tk.Tk()
+        self.root.title('Tkinter Open File Dialog')
+        self.root.resizable(False, False)
+        self.root.geometry('300x150')
         self.path = self.get_path()
         self.file_dialog()
 
     def get_path(self):
-        if self.directory != None and self.root != False:
-            path = self.directory
-        elif self.directory != None:
+        if self.directory != None:
             path = os.path.join(os.getcwd(), self.directory)
         else:
             path = os.getcwd()
@@ -61,7 +58,7 @@ class FileDialogWindow:
 
         # open button
         open_button = ttk.Button(
-            self.root,
+            master=self.root,
             text='Open a File',
             command=select_files
             

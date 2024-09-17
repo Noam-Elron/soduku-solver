@@ -44,6 +44,22 @@ class SudokuImage:
         return self.__cells
         
     def find_board_location(self):
+        """
+        Finds board's grid area and returns a warped image of the AOI(Area of Interest)
+
+        Parameters:
+            None
+
+        Returns:
+            Returns:
+                warped: Image, warped image of the AOI
+                warped_binary: warped binary image of the AOI
+                board_size: int, literally just the board size...
+        
+        Raises:
+            Nothing
+        """
+
         self.img = cv.resize(self.img, (900, 900))
         
         image_binary = self.image_preprocess(self.img.copy())
@@ -206,8 +222,9 @@ class SudokuImage:
 def main():
     win = FileDialogWindow("dataset")
     image = SudokuImage(win.filename)    
+    image.find_board_location
     grid = image.return_board()
-
+    
 
 
     

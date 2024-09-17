@@ -90,9 +90,11 @@ square_unit = [cross(row, col) for row in ("ABC", "DEF", "HGI") for col in ("123
 
 
 unit_list = (column_unit + row_unit + square_unit)
-units = dict((s, [u for u in unit_list if s in u]) for s in squares)
 
-# Creates a dictionary mapping each square with a single set that contains all its peers.
+# Maps every Square to all the unit's it belongs in(will be exactly 3, as appears in one row, one column and one square).
+# In other words: creates a dictionary mapping each square with a single set that contains all its peers.
+units = dict((s, [u for u in unit_list if s in u]) for s in squares) 
+
 """
  sum(iterable, start) == sum iterates through an iterable and adds each element to start. Default of start is 0.
  sum([[1,2,3], [4, 5, 6]], []]) flattens arrays because sum goes into the iterable and adds each item into the value of start. 
@@ -128,7 +130,7 @@ def create_grid(grid):
 def constraint_propagation(grid):
     "Try to eliminate impossible answers from solution_grid grid based on inputted grid. If impossible value detected return False"
     # To start, every square has the possibility to be any digit.
-    solution_grid = dict((square, cols) for square in squares)
+    solution_grid = dict((square, digits) for square in squares)
     # Loop over all squares inside the received grid. If a square has a real digit inside it(not "0" or "."), assign that number into
     # The solution_grid grid. If it's not possible, return False. 
     for square, digit in grid.items():
@@ -138,7 +140,7 @@ def constraint_propagation(grid):
                 return False ## (Fail if assign returns False a.k.a can't assign digit to square.)
     return solution_grid
 
-# Assign basically just calls eliminate on every digit. If it works then returns new grid.
+# Assign basically just calls eliminate on every digit other than the given one. If it works then returns new grid.
 def assign(solution_grid: list, square: str, digit: str):
     #Return new solution_grid grid, unless a contradiction is detected then return False.
 
