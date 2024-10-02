@@ -1,7 +1,16 @@
 import pygame 
-from src.sudoku_logic.sudoku_solver import backtracking, constraint_propagation, create_grid, check_validity, findEmpty  
-from sudoku_scanner import FileDialogWindow, SudokuImage
+from sudoku_logic.sudoku_solver import backtracking, constraint_propagation, create_grid, check_validity, findEmpty  
+from sudoku_logic.sudoku_scanner import FileDialogWindow, SudokuImage
 import time 
+
+# SUDOKU STUFF FOR CONVIENCE OF ITERATING AND STUFF
+def cross(A, B):
+    return [a+b for a in A for b in B]
+
+rows     = 'ABCDEFGHI'
+digits = '123456789'
+cols = digits
+squares  = cross(rows, cols)
 
 def gui(board):
     # GLOBALS
@@ -9,16 +18,6 @@ def gui(board):
     SCREEN_HEIGHT = 625
     colors: dict = {"white": (255, 255, 255), "black": (0, 0, 0), "orange": (255, 189, 3), "red": (255, 0, 0), 
     "l-blue": (173, 216, 230)}
-
-    # SUDOKU STUFF FOR CONVIENCE OF ITERATING AND STUFF
-    def cross(A, B):
-        return [a+b for a in A for b in B]
-
-    rows     = 'ABCDEFGHI'
-    digits = '123456789'
-    cols = digits
-    squares  = cross(rows, cols)
-
 
     # Initialize Pygame stuff
     pygame.init()
@@ -32,8 +31,10 @@ def gui(board):
     timer_font: pygame.font.SysFont = pygame.font.SysFont("garamond", 28, bold = True)
     solve_button_font: pygame.font.SysFont = pygame.font.SysFont("garamond", 24, bold=True)
 
+    main(board)
 
-    # CLASSES
+
+# CLASSES
 
     class Grid:
         rows = 9
@@ -159,6 +160,7 @@ def gui(board):
             return (self.x, self.y)
 
 
+
     # FUNCTIONS
     def timer(grid, starting_time):
         timer_text = timer_font.render(f"Time: {format_time(round(time.time() - starting_time))}", True, colors["black"])
@@ -217,7 +219,6 @@ def gui(board):
             pygame.display.flip()
         pygame.quit()
 
-    main(board)
 
 if __name__ == "__main__":
     gui("000003017015009008060000000100007000009000200000500004000000020500600340340200000")

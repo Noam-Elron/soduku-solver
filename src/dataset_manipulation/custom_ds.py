@@ -1,5 +1,4 @@
 from fileprompter import FileDialogWindow
-from sudoku_scanner import SudokuImage
 import cv2 as cv
 import numpy as np
 import os
@@ -58,11 +57,11 @@ def label_cells(cells: List[List[int]], labels: List[str]) -> List[Union[str, in
     Adds a label to each cell image. 
 
     Parameters:
-        cells(List[List[int]]) -- 2D Array containing 81 1D array of ints that make up the pixels of a 28*28 image of a given cell. \n
-        labels(List[str]) -- Array containing a string representation of the digit, corresponding to a cell that appears in the list of cells. 
+        cells(List[List[int]]) -- 2D Array containing 81 images of cells, each image of size 28*28. \n
+        labels(List[str]) -- Array of digits in string form, each digit corresponds corresponds to the digit appearing in the corresponding cell position in the cells list. 
 
     Returns:
-        2D Array where each element is an array that contains the label and all the cell pixels. 
+        2D Array where each element is an array, the first element in the array is a string that represents the digit appearing and the rest are the flattened pixels of the cell image. 
     """
     return [[labels[i]] + cell.tolist() for i, cell in enumerate(cells)]
 
@@ -113,7 +112,7 @@ def return_all_data() -> List[Union[str, int]]:
 
     return df_data
     # List comprehension way just to test, plus in case in need of speed up as list comprehension is almost always much faster than append/concat
-    #return [lableded_cell for img, data in pairs for lableded_cell in label_cells(return_cells(img), read_dat(data))]
+    #return [labled_cell for img, data in pairs for labled_cell in label_cells(return_cells(img), read_dat(data))]
 
 def create_df(all_data: List[Union[str, int]]):
     """

@@ -19,7 +19,7 @@ class FileDialogWindow:
         Nothing
     """
 
-    # TODO - Create failsafes incase direcory entered incorrectly or root used incorrectly.
+    # TODO - Create failsafes incase directory entered incorrectly or root used incorrectly.
     def __init__(self, directory=None):
         self.filename = None
         self.directory = directory

@@ -224,18 +224,11 @@ def backtracking(solution_grid):
     # Chose the unfilled square s with the fewest possibilities
     # Go over all the values of the squares, if a square has more than 1 value -> create a tuple of the square with the amount of digits is still has possible. return square with the 
     # least amount of possibilities left
-    _ , s = min((len(solution_grid[s]), s) for s in squares if len(solution_grid[s]) > 1)
+    _ , min_square = min((len(solution_grid[s]), s) for s in squares if len(solution_grid[s]) > 1)
 
     # For every digit left in the square from above, try to assign that digit to square, once a digit works assign returns the new grid and backtracking is called again on the
     # New grid recursively
-    return some(backtracking(assign(solution_grid.copy(), s, d)) for d in solution_grid[s])
-
-def some(seq):
-    "Return some element of seq that is true."
-    for e in seq:
-        if e: 
-            return e
-    return False
+    return any(backtracking(assign(solution_grid.copy(), min_square, digit)) for digit in solution_grid[min_square])
 
 def solve(grid): 
     # Solves the given grid by first creating the constraint_propagated grid, and passing that to be backtracked upon
@@ -273,9 +266,9 @@ def check_validity(current_grid, square, digit):
             return False
     return True
 
-def compare_solutions(solver1_function_grid, solver2_function_grid):
-    board1 = timer(solver1_function_grid)
-    board2 = timer(solver2_function_grid)
+def compare_solutions(grid, solver1_function_grid, solver2_function_grid):
+    board1 = timer(grid, solver1_function_grid)
+    board2 = timer(grid, solver2_function_grid)
 
     for square in squares:
         if board1[square] != board2[square]:
@@ -284,7 +277,7 @@ def compare_solutions(solver1_function_grid, solver2_function_grid):
     print("Both Solutions are identical")
     return True
 
-def timer(func):
+def timer(grid, func):
     start = time.time()
     board = func(copy.deepcopy(grid))
     print(f"Time to solve: {time.time() - start}")

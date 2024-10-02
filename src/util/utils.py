@@ -22,10 +22,12 @@ def image_show_matplotlib(image, title="Image"):
 
 def multi_image_show_matplotlib(images, num_images, num_in_row):
     """
-    Show multiple images in same matplotlib figure.
+    Show multiple images in same matplotlib figure. 
     """
     rows = math.ceil(num_images/num_in_row)
     fig, axis = plt.subplots(nrows=rows, ncols=num_in_row, figsize=(12, 14))
+    axis = axis.flatten()
+    axis = axis[:num_images]
     for i, ax in enumerate(axis.flat):
         ax.imshow(images[i], cmap='gray', interpolation='none')
         ax.set(title = f"Image #{i+1}")
@@ -61,32 +63,35 @@ def prediction_show_matplotlib(cells):
 
 
 def pad_image(image, pixels: int, color: int):
+    # args are src, top padding, bottom padding, left padding, right padding, border type, border value/color if type is constant.
     image = cv.copyMakeBorder(image, pixels, pixels, pixels, pixels, cv.BORDER_CONSTANT, color)
     return image
 
-def return_cells(filename: str) -> List[List[int]]:
-    """
-    Returns all cells extracted from an image
-    
-    Parameters:
-        filename(str): path to an image(specifically a sudoku image)
+
+
+def return_dataset_images(directory: str, reverse: bool = False):
+    """Returns all images from the dataset, expects images to be in the format image#number.file_extension where file_extension is either jpg,jpeg or png.
+
+    Args:
+        directory (str): Images Directory to search
+        reverse (bool, optional): Flag to determine if images are returned in ascending #number order or descending. Defaults to False which is Ascending.
 
     Returns:
-        2D array of shape [81, 784] 
+        filepaths: List of paths to each image in the directory.
     """
-    img = SudokuImage(filename)
-    cells = img.return_all_cells()
-    # Resize all cells to be a 28x28 image to be uniform with 
-    #multi_image_show_matplotlib(cells, 20, 4)
-    cells = [cv.resize(cells[i], (18,18)) for i in range(len(cells))]  
-    cells = [pad_image(cell, 5, 0) for cell in cells]
-    #multi_image_show_matplotlib(cells, 20, 4)
-    cells = np.reshape(cells, (-1, 28*28)) 
-    return cells
+    cur_dir = os.getcwd()
+    path = os.path.join(cur_dir, directory)
+    # Normalize filepath to work for both windows and linux
+    path = os.path.normcase(path) 
+    files = glob.glob(os.path.join(path, "*.jpg")) + glob.glob(os.path.join(path, "*.jpeg")) + glob.glob(os.path.join(path, "*.png"))
+    # Sorting the files based on number.
+    reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\"  else r"(?<=\/image)[0-9]+(?=.)"
+    files = sorted(files, key = lambda file: int(re.search(reg_exp, file).group()), reverse=reverse)
+    return files
 
-def look_at_dataset(directory: str, reverse: bool = False):
-    from sudoku_scanner import SudokuImage
 
+def look_at_dataset_warped(directory: str, reverse: bool = False):
+    from src.sudoku_logic.sudoku_scanner import SudokuImage
     """
     Shows every image's warped perspective that is inside the given directory
 
@@ -99,14 +104,7 @@ def look_at_dataset(directory: str, reverse: bool = False):
     Raises:
         Nothing
     """
-    cur_dir = os.getcwd()
-    path = os.path.join(cur_dir, directory)
-    # Normalize filepath to work for both windows and linux
-    path = os.path.normcase(path) 
-    files = glob.glob(os.path.join(path, "*.jpg")) + glob.glob(os.path.join(path, "*.jpeg")) + glob.glob(os.path.join(path, "*.png"))
-    # Sorting the files based on number.
-    reg_exp = r"(?<=\\image)[0-9]+(?=.)" if os.sep == "\\"  else r"(?<=\/image)[0-9]+(?=.)"
-    files = sorted(files, key = lambda file: int(re.search(reg_exp, file).group()), reverse=reverse)
+    files = return_dataset_images(directory, reverse)
     for file in files:
         img = SudokuImage(file)
         print(img.shortened_filename)
@@ -118,6 +116,35 @@ def look_at_dataset(directory: str, reverse: bool = False):
             print(f"{img.shortened_filename}-problematic")
             continue
 
+def configure_threshold(directory: str, reverse: bool = False):
+    from src.sudoku_logic.sudoku_scanner import SudokuImage
+
+    """
+    Creates a window with multiple images
+
+    Parameters:
+        directory(str): directory that contains images whose names start in image followed by a number
+
+    Returns:
+        Nothing
+    
+    Raises:
+        Nothing
+    """
+    files = return_dataset_images(directory, reverse)
+    for file in files:
+        img = SudokuImage(file)
+        print(img.shortened_filename)
+        try:
+            pass
+        except:
+            # Doesn't raise an Exception in order to debug bad images faster.
+            print(f"{img.shortened_filename}-problematic")
+            continue
+            
+
+
+
 def convert_dtype(img, target_type_min, target_type_max, target_type):
     imin = img.min()
     imax = img.max()
@@ -126,6 +153,53 @@ def convert_dtype(img, target_type_min, target_type_max, target_type):
     b = target_type_max - a * imax
     new_img = (a * img + b).astype(target_type)
     return new_img
+
+
+
+def fix_data_files() -> None:
+    """
+    Helper function to remove first two lines from .dat files as the downloaded .dat files came with two lines of useless info. 
+
+    Parameters:
+        None
+
+    Returns:
+        None, rewrites files.
+    """
+
+    pairs = get_all_data_pairs("dataset")
+    for img, data in pairs:
+        with open(data, "r+") as file:
+            lines = file.readlines()
+            file.seek(0)
+            file.truncate()
+            file.writelines(lines[2:])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def s(img):
     w, h = img.shape[1], img.shape[0]
@@ -212,22 +286,3 @@ def s(img):
                         images.append(digit_img)
                         break
         return images
-
-def fix_data_files() -> None:
-    """
-    Helper function to remove first two lines from .dat files as the downloaded .dat files came with two lines of useless info. 
-
-    Parameters:
-        None
-
-    Returns:
-        None, rewrites files.
-    """
-
-    pairs = get_all_data_pairs("dataset")
-    for img, data in pairs:
-        with open(data, "r+") as file:
-            lines = file.readlines()
-            file.seek(0)
-            file.truncate()
-            file.writelines(lines[2:])
