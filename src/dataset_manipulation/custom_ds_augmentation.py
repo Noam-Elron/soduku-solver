@@ -226,6 +226,30 @@ def output_csv(directory, name, combined=False):
     df = combine_dataframes(pd.read_csv('./input/train.csv'), df) if combined else df
     df.to_csv(f'./{directory}/{name}.csv', index=False)
 
+
+def fix_data_files() -> None:
+    """
+    Helper function to remove first two lines from .dat files as the downloaded .dat files came with two lines of useless info. 
+
+    Parameters:
+        None
+
+    Returns:
+        None, rewrites files.
+    """
+
+    pairs = get_all_data_pairs("dataset")
+    for img, data in pairs:
+        with open(data, "r+") as file:
+            lines = file.readlines()
+            file.seek(0)
+            file.truncate()
+            file.writelines(lines[2:])
+
+
+
+
+
 def extend_dataset():
     pass
     # TODO, iterate over every file in dataset directory, rotate the image 90 degrees 3 times and each time append that

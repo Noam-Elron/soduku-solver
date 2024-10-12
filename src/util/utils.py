@@ -1,73 +1,17 @@
 import os
 import glob
 import time
-import math
 import re
-from typing import List, Tuple, Union
 
 import numpy as np
 import matplotlib as mp
 import matplotlib.pyplot as plt
 import cv2 as cv
 
-
-
-def image_show_matplotlib(image, title="Image"):
-    fig = plt.figure()
-    plt.imshow(image, cmap='gray', interpolation='none')
-    plt.title(title)
-    plt.xticks([])
-    plt.yticks([])
-    plt.show()
-
-def multi_image_show_matplotlib(images, num_images, num_in_row):
-    """
-    Show multiple images in same matplotlib figure. 
-    """
-    rows = math.ceil(num_images/num_in_row)
-    fig, axis = plt.subplots(nrows=rows, ncols=num_in_row, figsize=(12, 14))
-    axis = axis.flatten()
-    axis = axis[:num_images]
-    for i, ax in enumerate(axis.flat):
-        ax.imshow(images[i], cmap='gray', interpolation='none')
-        ax.set(title = f"Image #{i+1}")
-    plt.show()
-
-def predict(image):
-    from tensorflow.keras.models import load_model
-    model = load_model('models/attempt.h5')
-    #print(model.summary())
-    config = model.get_config() # Returns pretty much every information about your model
-    print("Input: ", config["layers"][0]["config"]["batch_input_shape"]) # returns a tuple of width, height and channels
-    prediction = model.predict(image)
-
-    return prediction, prediction.argmax() 
-
-def predict_all(images, positions):
-    from tensorflow.keras.models import load_model
-    model = load_model('models/combined_dataset2.h5')
-    predictions = model.predict(images)
-    predict_list = [[predictions[i].argmax(), positions[i]] for i, pred in enumerate(predictions)]
-    return predict_list    
-    
-
-def prediction_show_matplotlib(cells):
-    from tensorflow.keras.models import load_model
-    model = load_model('models/combined_dataset2.h5')
-    pred = model.predict(cells)
-    fig, axis = plt.subplots(4, 4, figsize=(12, 14))
-    for i, ax in enumerate(axis.flat):
-        ax.imshow(cells[i], cmap='gray')
-        ax.set(title = f"Predicted Number is {pred[i].argmax()}")
-    plt.show()
-
-
 def pad_image(image, pixels: int, color: int):
     # args are src, top padding, bottom padding, left padding, right padding, border type, border value/color if type is constant.
     image = cv.copyMakeBorder(image, pixels, pixels, pixels, pixels, cv.BORDER_CONSTANT, color)
     return image
-
-
 
 def return_dataset_images(directory: str, reverse: bool = False):
     """Returns all images from the dataset, expects images to be in the format image#number.file_extension where file_extension is either jpg,jpeg or png.
@@ -90,90 +34,6 @@ def return_dataset_images(directory: str, reverse: bool = False):
     return files
 
 
-def look_at_dataset_warped(directory: str, reverse: bool = False):
-    from src.sudoku_logic.sudoku_scanner import SudokuImage
-    """
-    Shows every image's warped perspective that is inside the given directory
-
-    Parameters:
-        directory(str): directory that contains images whose names start in image followed by a number
-
-    Returns:
-        Nothing
-    
-    Raises:
-        Nothing
-    """
-    files = return_dataset_images(directory, reverse)
-    for file in files:
-        img = SudokuImage(file)
-        print(img.shortened_filename)
-        try:
-            board, board_binary, board_size = img.find_board_location()
-            multi_image_show_matplotlib([board, board_binary], 2, 1)
-        except:
-            # Doesn't raise an Exception in order to debug bad images faster.
-            print(f"{img.shortened_filename}-problematic")
-            continue
-
-def configure_threshold(directory: str, reverse: bool = False):
-    from src.sudoku_logic.sudoku_scanner import SudokuImage
-
-    """
-    Creates a window with multiple images
-
-    Parameters:
-        directory(str): directory that contains images whose names start in image followed by a number
-
-    Returns:
-        Nothing
-    
-    Raises:
-        Nothing
-    """
-    files = return_dataset_images(directory, reverse)
-    for file in files:
-        img = SudokuImage(file)
-        print(img.shortened_filename)
-        try:
-            pass
-        except:
-            # Doesn't raise an Exception in order to debug bad images faster.
-            print(f"{img.shortened_filename}-problematic")
-            continue
-            
-
-
-
-def convert_dtype(img, target_type_min, target_type_max, target_type):
-    imin = img.min()
-    imax = img.max()
-
-    a = (target_type_max - target_type_min) / (imax - imin)
-    b = target_type_max - a * imax
-    new_img = (a * img + b).astype(target_type)
-    return new_img
-
-
-
-def fix_data_files() -> None:
-    """
-    Helper function to remove first two lines from .dat files as the downloaded .dat files came with two lines of useless info. 
-
-    Parameters:
-        None
-
-    Returns:
-        None, rewrites files.
-    """
-
-    pairs = get_all_data_pairs("dataset")
-    for img, data in pairs:
-        with open(data, "r+") as file:
-            lines = file.readlines()
-            file.seek(0)
-            file.truncate()
-            file.writelines(lines[2:])
 
 
 

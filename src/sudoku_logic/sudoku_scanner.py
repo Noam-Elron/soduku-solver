@@ -3,8 +3,9 @@ import numpy as np
 import re
 import os
 from util.fileprompter import FileDialogWindow
-from util.utils import pad_image, predict_all, prediction_show_matplotlib, multi_image_show_matplotlib, image_show_matplotlib, convert_dtype
-import matplotlib.pyplot as plt
+from util.utils import pad_image 
+from util.imgplotting import multi_image_show_matplotlib, image_show_matplotlib
+from util.predict import predict_all, prediction_show_matplotlib
 
 
 class SudokuImage:
@@ -12,27 +13,32 @@ class SudokuImage:
         self.filename = filename
         self.shortened_filename = re.search(r"(?<=(\/|\\))\w+(?=\.+(jpg|png|jpeg))", self.filename).group()
         
-        self.img = cv.imread(self.filename)
-
+        self.img = cv.resize(cv.imread(self.filename), (900, 900))
+        
         self.blocksize = blocksize
         self.c = c
 
-    def return_board(self):
-        """
-        Finds all the sudoku cells in the image, "extracts" the digits images and their positions into respective arrays and then
+    def return_board(self, debug=False):
+        """Finds all the sudoku cells in the image, "extracts" the digits images and their positions into respective arrays and then
         feeds the information into predict_board to receive all the actual numerical digits in string form. 
+
+        Args:
+            debug (bool, optional): Boolean clause to determine if to display results in debugging mode. Defaults to False.
+
         Returns:
             str: String format of actual board
         """
-        self.img = cv.resize(self.img, (900, 900))
-        #self.extract_digits2()
         cells = self.return_all_cells(binary=True)
-        multi_image_show_matplotlib(cells, len(cells), 10)
-
+        
         digits, digit_positions = self.extract_digits(cells)
-        print(digits.shape)
-        multi_image_show_matplotlib(digits, len(digits), 10)
-        #prediction_show_matplotlib(digits)
+        
+
+        if debug:
+            print(digits.shape)
+            multi_image_show_matplotlib(cells, len(cells), 10)
+            multi_image_show_matplotlib(digits, len(digits), 10)
+            prediction_show_matplotlib(digits)
+
         #grid = self.predict_board(digits, digit_positions)
         #grid_stringified = ''.join(map(str, grid))
 
@@ -50,39 +56,36 @@ class SudokuImage:
             binary (bool, optional): Flag that determines if returns cells will be binarized. Defaults to True.
 
         Returns:
-        
-            List of images of cells
+            List[images]: List of images of cells
         """
         warped_board, warped_board_binary, board_size = self.find_board_location()
-        #multi_image_show_matplotlib([warped_board, warped_board_binary], 2, 1)
         cells = []
         if binary==True:
-            cells = self.get_cells(warped_board_binary, board_size)
+            cells = self.split_image_to_cells(warped_board_binary, board_size)
         else:
             warped_board = cv.cvtColor(warped_board, cv.COLOR_BGR2GRAY)
-            cells = self.get_cells(warped_board, board_size)
+            cells = self.split_image_to_cells(warped_board, board_size)
         return cells
         
-    def find_board_location(self):
+    def find_board_location(self, debug=False):
         """
         Finds board's grid area and returns a warped image of the AOI(Area of Interest)
 
         Parameters:
-            None
+            debug (bool, optional): Boolean clause to determine if to display results in debugging mode. Defaults to False.
 
         Returns:
-            Returns:
-                warped: Image, warped image of the AOI
-                warped_binary: warped binary image of the AOI
-                board_size: int, literally just the board size...
+            warped: Image, warped image of the AOI
+            warped_binary: warped binary image of the AOI
+            board_size: int, literally just the board size...
         
         Raises:
             Nothing
         """
 
         # TODO Decide if i should perform other preprocessing steps in binarize_image
-        
         image_binary = self.binarize_image(self.img.copy())
+
         # Deciding to make background black and foreground/objects white for convenience and consistency
         img_for_contour = cv.bitwise_not(image_binary)
         # Finds all external contours and approximates them into semi simple shapes/removes redundant points.
@@ -99,27 +102,24 @@ class SudokuImage:
                 board_loc = approx
                 break 
         try:
-            # board_loc_original = board_loc # needed for properly drawing around the board using polylines function down below for debugging
+            board_loc_original = board_loc # needed for properly drawing around the board using polylines function down below for debugging
             board_loc = self.reorder(board_loc)
             
         except UnboundLocalError:
             raise Exception("Image is bad, no contour with 4 vertexes was found A.K.A unable to find sudoku boundary, try again with different image")
-            return
+        
         # Returns top-left x,y coordinates of rectangle along with width and height.
         imgx, imgy, imgw, imgh = cv.boundingRect(board_loc)
         board_size = max(imgw, imgh)
 
         warped, warped_binary = self.warp_perspective(self.img.copy(), image_binary, board_loc, board_size)
         
-        #cv.polylines(self.img, np.int32([board_loc_original]), True, 255, 5)
-        #multi_image_show_matplotlib([self.img, warped, warped_binary], 3, 1)
+        if debug:
+            cv.polylines(self.img, np.int32([board_loc_original]), True, 255, 5) #draw board square onto original image.
+            multi_image_show_matplotlib([self.img, warped, warped_binary], 3, 1)
 
         return warped, warped_binary, board_size
-
-
     
-
-
     def warp_perspective(self, image, image_binary, location, size):
         """
         Apply a perspective warp - a.k.a creating a new image with a warped perspective so that 
@@ -149,11 +149,14 @@ class SudokuImage:
         return result, result_binary
     
 
-
     def split_image_to_cells(self, warped_image, board_size):
-        """ 
-        Returns all the cells of the sudoku board
-        Takes a warped image w/ the size of the board as arguments
+        """Returns all the cells of the sudoku board
+        Args:
+            warped_image (Image): Warped image of the sudoku board
+            board_size (int): Area of the board
+
+        Returns:
+            ndarray[Cells]: Numpy arrays of the cells of the sudoku board.
         """
         cells = []
         cell_width, cell_height = board_size//9, board_size//9
@@ -164,26 +167,24 @@ class SudokuImage:
 
                 # First dimension corresponds to rows(y), second to columns(x)
                 cell = warped_image[top_left_y:bottom_right_y, top_left_x:bottom_right_x]
-                #cell = cv.resize(cell, (28,28))        
                 cells.append(cell)
 
-        return np.asarray(cells)
-
-    def get_cells(self, warped_image, board_size):
-        cells = self.split_image_to_cells(warped_image, board_size) 
-        #cells = [cv.resize(cells[i], (28,28)) for i in range(len(cells))]  
-        #cells = np.reshape(cells, (-1, 28, 28, 1))
         cells = cv.bitwise_not(cells)
         kernel = cv.getStructuringElement(cv.MORPH_RECT, (3,3))
         for i in range(len(cells)):
             cells[i] = cv.morphologyEx(cells[i], cv.MORPH_OPEN, kernel)
-        return cells
+        
+        return np.asarray(cells)
 
     def extract_digits(self, cells):
-        """
+        """Extracts digits from sudoku cells
 
+        Args:
+            cells (Image): Cells of the sudoku board
+
+        Returns:
+            List[Images]: List of images of the extracted digits
         """
-        warped_board, warped_board_binary, board_size = self.find_board_location()
         digits = []
         positions = []
         for i, cell in enumerate(cells):
@@ -199,9 +200,8 @@ class SudokuImage:
                     digit = cell[imgy:imgy+img_height, imgx:imgx+img_width]
                     digit = cv.resize(digit, (18,18))
                     digit = pad_image(digit, 5, 0)
-                    #digit = cv.resize(digit, (28,28))
-                    cv.rectangle(cell, (imgx,imgy), (imgx+img_width,imgy+img_height), (0, 255, 0), 3)
-                    image_show_matplotlib(digit, f"Cell #{i}")
+                    #cv.rectangle(cell, (imgx,imgy), (imgx+img_width,imgy+img_height), (0, 255, 0), 3)
+                    #image_show_matplotlib(digit, f"Cell #{i}")
                     digits.append(digit)
                     positions.append(i)
                     break
@@ -248,13 +248,13 @@ class SudokuImage:
             grid[position] = prediction
         #print(grid)
         return grid
-
+    
     def binarize_image(self, img_copy):
         """
         Given an image, converts it to GrayScale and then Binarizes it using Adaptive Thresholding.  
 
         Parameters:
-            None
+            img_copy Image: Copy of image to binarize(to avoid side-effects), if not caring/wanting side-effects image itself may be passed.
 
         Returns:
             Image: Binarized version of image
@@ -266,6 +266,18 @@ class SudokuImage:
         img_copy = cv.cvtColor(img_copy, cv.COLOR_BGR2GRAY)
         img_copy = cv.adaptiveThreshold(img_copy,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, self.blocksize, self.c)
         return img_copy
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     def extract_digits2(self):
@@ -349,27 +361,6 @@ class SudokuImage:
             cell = cv.resize(cells[i], (28, 28))
             cell_path = os.path.join(path, f'{self.shortened_filename}-{i}.jpg')
             cv.imwrite(cell_path, cell)
-
-    def output_image(self, image):
-        path = os.path.join(os.getcwd(), "images")
-        cell_path = os.path.join(path, f'{self.shortened_filename}-output.jpg')
-        cv.imwrite(cell_path, image)
-
-    def image_show(self, pos_x = 500, pos_y = 50):
-        self.find_board(self.blocksize, self.c)    
-        cv.imshow(f"{self.filename}", self.img)  
-        cv.moveWindow(f"{self.filename}", pos_x, pos_y)
-        cv.waitKey(0)
-
-    def show_contour(self, img, contour):
-        copy = cv.drawContours(img.copy(), contour, -1, 255, 3)
-        cv.imshow(f"{self.shortened_filename}-contour", copy)
-        cv.waitKey(0)
-
-
-
-
-
 
 
 

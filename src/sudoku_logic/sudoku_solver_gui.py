@@ -1,6 +1,5 @@
 import pygame 
 from sudoku_logic.sudoku_solver import backtracking, constraint_propagation, create_grid, check_validity, findEmpty  
-from sudoku_logic.sudoku_scanner import FileDialogWindow, SudokuImage
 import time 
 
 # SUDOKU STUFF FOR CONVIENCE OF ITERATING AND STUFF

@@ -6,8 +6,9 @@ def main():
     blocksize, c = 23, 7
     image = SudokuImage(win.filename)    
     image.return_board()
-    #grid = image.return_board()
-    #gui(grid)
+    grid = image.return_board()
+    gui(grid)
+    
 
 if __name__ == "__main__":
     main()
