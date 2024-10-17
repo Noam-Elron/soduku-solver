@@ -9,7 +9,7 @@ from util.predict import predict_all, prediction_show_matplotlib
 
 
 class SudokuImage:
-    def __init__(self, filename, blocksize = 23, c = 7):
+    def __init__(self, filename, blocksize = 53, c = 7):
         self.filename = filename
         self.shortened_filename = re.search(r"(?<=(\/|\\))\w+(?=\.+(jpg|png|jpeg))", self.filename).group()
         
@@ -28,7 +28,8 @@ class SudokuImage:
         Returns:
             str: String format of actual board
         """
-        cells = self.return_all_cells(binary=True)
+        
+        cells = self.return_all_cells(debug, binary=True)
         
         digits, digit_positions = self.extract_digits(cells)
         
@@ -48,7 +49,7 @@ class SudokuImage:
 
         #return grid_stringified
 
-    def return_all_cells(self, binary=True):
+    def return_all_cells(self, debug=False, binary=True):
         """
         Returns an array of images of all the cells in the board
 
@@ -58,7 +59,7 @@ class SudokuImage:
         Returns:
             List[images]: List of images of cells
         """
-        warped_board, warped_board_binary, board_size = self.find_board_location()
+        warped_board, warped_board_binary, board_size = self.find_board_location(debug)
         cells = []
         if binary==True:
             cells = self.split_image_to_cells(warped_board_binary, board_size)
@@ -95,10 +96,16 @@ class SudokuImage:
         contours = sorted(contours, key=cv.contourArea, reverse=True)
         # Loops over all the contours, who are already sorted by descending area, until it finds the biggest area that is also a quadrilateral
         for contour in contours:
-            #self.show_contour(self.img, contour)
             perimeter_len = cv.arcLength(contour, True)
+            # Using the perimeter of the contour found we can approximate its shape, removing any small inconsistencies 
+            # less than epsilon, leaving us hopefully with a perfect quadrilateral. 10% of perimeter length seems to be a good estimation
+            # To remove inconsistencies while maintaining general shape of contour
+            # Further experimentation with epsilon value may yield better results.
             approx = cv.approxPolyDP(contour, 0.1*perimeter_len, True)
-            if len(approx) == 4:
+            
+            #print(f"{self.shortened_filename}, Contour approx points: {len(approx)}, Contour area: {cv.contourArea(contour)}")
+
+            if len(approx) == 4 and cv.contourArea(contour) > 5000:
                 board_loc = approx
                 break 
         try:
@@ -106,7 +113,7 @@ class SudokuImage:
             board_loc = self.reorder(board_loc)
             
         except UnboundLocalError:
-            raise Exception("Image is bad, no contour with 4 vertexes was found A.K.A unable to find sudoku boundary, try again with different image")
+            raise Exception("Image is bad, no contour with 4 vertexes was found or area was less than 5000, A.K.A unable to find sudoku boundary, try again with different image")
         
         # Returns top-left x,y coordinates of rectangle along with width and height.
         imgx, imgy, imgw, imgh = cv.boundingRect(board_loc)
@@ -116,7 +123,7 @@ class SudokuImage:
         
         if debug:
             cv.polylines(self.img, np.int32([board_loc_original]), True, 255, 5) #draw board square onto original image.
-            multi_image_show_matplotlib([self.img, warped, warped_binary], 3, 1)
+            multi_image_show_matplotlib([self.img, cv.cvtColor(self.img, cv.COLOR_BGR2GRAY), image_binary, img_for_contour, warped, warped_binary], 6, 2)
 
         return warped, warped_binary, board_size
     
