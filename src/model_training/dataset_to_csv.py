@@ -1,4 +1,4 @@
-from DatasetManager import ImgDatDirectoryManager
+from model_training.PairsDatasetManager import ImgDatDirectoryManager
 from typing import List, Tuple, Union
 from sudoku_logic.sudoku_scanner import SudokuImage
 import pandas as pd
