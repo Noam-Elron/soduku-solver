@@ -3,7 +3,7 @@ from sudoku_logic.sudoku_solver_gui import gui
 
 def main():
     win = FileDialogWindow(directory="images")
-    blocksize, c = 23, 7
+    blocksize, c = 53, 7
     image = SudokuImage(win.filename)    
     image.return_board()
     grid = image.return_board()
