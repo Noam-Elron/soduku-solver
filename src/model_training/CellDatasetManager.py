@@ -38,6 +38,17 @@ class CellDatasetManager(DatasetManager):
         
         return images
     
+    def get_image_digit(self, image: str):
+        """Returns string of digit contained in a cell. Expects data to be in the format normalized according to CellDatasetManager.
+
+        Args:
+            image (str): filepath to img.
+        Returns:
+            str: digit contained in image.
+        """
+        text = image.split("_")
+        return text[0]
+
     def normalize_file_names(self, digit, bottom_range=0):
         """
         Renames all existing files to (digit)_image(img_count)
