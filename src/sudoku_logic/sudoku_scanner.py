@@ -3,7 +3,6 @@ import numpy as np
 import re
 import os
 from util.fileprompter import FileDialogWindow
-from util.utils import pad_image 
 from util.imgplotting import multi_image_show_matplotlib, image_show_matplotlib
 from util.predict import predict_all, prediction_show_matplotlib
 
@@ -195,7 +194,7 @@ class SudokuImage:
         digits = []
         positions = []
         for i, cell in enumerate(cells):
-            cell = pad_image(cell, 5, 0)
+            cell = cv.copyMakeBorder(cell, 5, 5, 5, 5, cv.BORDER_CONSTANT, 0)
             
             contours, _ = cv.findContours(cell, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
             for contour in contours:
@@ -206,7 +205,7 @@ class SudokuImage:
                 if not(img_height>3*img_width) and img_width > 0.3*img_height and img_width*img_height > (0.05*(cell.shape[0] * cell.shape[1])) and img_width*img_height < (0.6*(cell.shape[0] * cell.shape[1])):
                     digit = cell[imgy:imgy+img_height, imgx:imgx+img_width]
                     digit = cv.resize(digit, (18,18))
-                    digit = pad_image(digit, 5, 0)
+                    digit = cv.copyMakeBorder(digit, 5, 5, 5, 5, cv.BORDER_CONSTANT, 0)
                     #cv.rectangle(cell, (imgx,imgy), (imgx+img_width,imgy+img_height), (0, 255, 0), 3)
                     #image_show_matplotlib(digit, f"Cell #{i}")
                     digits.append(digit)
