@@ -89,8 +89,6 @@ class ImgDatDirectoryManager(DatasetManager):
         Renames all existing files to img#, data# pairs 
         Parameters:
             bottom_range(int) - Starting count for what number onwards to name the files.
-        Returns:
-            2D Array where each element is a Tuple that contains filepaths for a IMAGE,DATA pair.
         Raises:
             AttributeError - Incompatible/Misnamed file in given directory 
         """
