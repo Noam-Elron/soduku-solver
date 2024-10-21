@@ -4,7 +4,7 @@ from sudoku_logic.sudoku_scanner import SudokuImage
 import pandas as pd
 
 
-def img_attach_labels(img: str, labels: List[str]) -> List[Union[str, int]]:
+def sudoku_attach_labels(img: str, labels: List[str]) -> List[Union[str, int]]:
     """
     Takes an image of a sudoku board and attaches each label to the appropriate flattened(instead of 2D img, flattened to 1D) cell
 
@@ -20,6 +20,27 @@ def img_attach_labels(img: str, labels: List[str]) -> List[Union[str, int]]:
     cells = img.return_all_cells()
     return [[labels[i]] + cell.tolist() for i, cell in enumerate(cells)]
 
+def simplify_sudoku_files_to_data(directoryManager: ImgDatDirectoryManager) -> List[Union[str, List[int]]]:
+    """ 
+    Transforms the images and data files from the dataset to data appropriate to a csv file.
+
+    Parameters:
+        None
+
+    Returns:
+        Returns a 2D array where each element is a list containing a label and 784 pixels which make up an image of a 28*28 cell
+    
+    Raises:
+        Nothing
+    """
+
+    df_data = []
+    pairs = directoryManager.get_all_img_dat_files()
+    for img, data in pairs:
+        sudoku_numbers = directoryManager.get_image_labels(data)
+        df_data += sudoku_attach_labels(img, sudoku_numbers)
+
+    return df_data
 
 
 def create_df(all_data: List[Union[str, int]]):
@@ -54,30 +75,6 @@ def combine_dataframes(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([df1, df2], axis=0)
 
 
-
-def simplify_dir_to_data(directoryManager: ImgDatDirectoryManager) -> List[Union[str, List[int]]]:
-    """ 
-    Transforms the images and data files from the dataset to data appropriate to a csv file.
-
-    Parameters:
-        None
-
-    Returns:
-        Returns a 2D array where each element is a list containing a label and 784 pixels which make up an image of a 28*28 cell
-    
-    Raises:
-        Nothing
-    """
-
-    df_data = []
-    pairs = directoryManager.get_all_img_dat_files()
-    for img, data in pairs:
-        sudoku_numbers = directoryManager.get_image_labels(data)
-        df_data += img_attach_labels(img, sudoku_numbers)
-
-    return df_data
-
-
 def output_dataset_csv(directory: str, name: str):
     """Create csv from dataset.
 
@@ -86,7 +83,7 @@ def output_dataset_csv(directory: str, name: str):
         name (str): Name for the csv file
     """
 
-    data = simplify_dir_to_data()
+    data = simplify_sudoku_files_to_data()
     df = create_df(data)
     df.to_csv(f'./{directory}/{name}.csv', index=False)
 
