@@ -37,7 +37,7 @@ class SudokuImage:
             print(digits.shape)
             multi_image_show_matplotlib(cells, len(cells), 10)
             multi_image_show_matplotlib(digits, len(digits), 10)
-            prediction_show_matplotlib(digits)
+            #prediction_show_matplotlib(digits)
 
         #grid = self.predict_board(digits, digit_positions)
         #grid_stringified = ''.join(map(str, grid))
@@ -97,12 +97,12 @@ class SudokuImage:
         for contour in contours:
             perimeter_len = cv.arcLength(contour, True)
             # Using the perimeter of the contour found we can approximate its shape, removing any small inconsistencies 
-            # less than epsilon, leaving us hopefully with a perfect quadrilateral. 10% of perimeter length seems to be a good estimation
+            # less than epsilon, leaving us hopefully with a perfect quadrilateral. 5% of perimeter length seems to be a good estimation
             # To remove inconsistencies while maintaining general shape of contour
             # Further experimentation with epsilon value may yield better results.
-            approx = cv.approxPolyDP(contour, 0.1*perimeter_len, True)
+            approx = cv.approxPolyDP(contour, 0.05*perimeter_len, True)
             
-            #print(f"{self.shortened_filename}, Contour approx points: {len(approx)}, Contour area: {cv.contourArea(contour)}")
+            print(f"{self.shortened_filename}, Contour approx points: {len(approx)}, Contour area: {cv.contourArea(contour)}")
 
             if len(approx) == 4 and cv.contourArea(contour) > 5000:
                 board_loc = approx
@@ -175,9 +175,10 @@ class SudokuImage:
                 cell = warped_image[top_left_y:bottom_right_y, top_left_x:bottom_right_x]
                 cells.append(cell)
 
-        cells = cv.bitwise_not(cells)
+        
         kernel = cv.getStructuringElement(cv.MORPH_RECT, (3,3))
         for i in range(len(cells)):
+            cells[i] = cv.bitwise_not(cells[i])
             cells[i] = cv.morphologyEx(cells[i], cv.MORPH_OPEN, kernel)
         
         return np.asarray(cells)
