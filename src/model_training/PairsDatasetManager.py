@@ -2,19 +2,11 @@ import os
 import glob 
 from typing import List, Tuple, Union
 import re
+from .DatasetManager import DatasetManager
 
-class ImgDatDirectoryManager:
-    def __init__(self, directory="dataset") -> None:
-        self.cur_directory = directory
-        self.cwd = None
-        self.path = None
-        self.set_paths()
-
-    def set_paths(self):
-        self.cwd = os.getcwd()
-        path = os.path.join(self.cwd, self.cur_directory)
-        # Normalize filepath to work for both windows and linux
-        self.path = os.path.normcase(path) 
+class ImgDatDirectoryManager(DatasetManager):
+    def __init__(self, directory):
+        super().__init__(directory)
 
     def get_all_img_files(self, reverse: bool = False):
         """Returns all images from the dataset, expects images to be in the format image#number.file_extension where file_extension is either jpg,jpeg or png.
@@ -92,7 +84,33 @@ class ImgDatDirectoryManager:
         output = [digit for row in values for digit in row]
         return output
     
-    
+    def normalize_file_names(self, bottom_range=0):
+        """
+        Renames all existing files to img#, data# pairs 
+        Parameters:
+            bottom_range(int) - Starting count for what number onwards to name the files.
+        Returns:
+            2D Array where each element is a Tuple that contains filepaths for a IMAGE,DATA pair.
+        Raises:
+            AttributeError - Incompatible/Misnamed file in given directory 
+        """
+        files = glob.glob(os.path.join(self.path, "*"))      
+        img_number = bottom_range
+        dat_number = bottom_range
+        for file in files:
+            _, file_extension = os.path.splitext(file)
+            #print(file, file_extension)
+            
+            if file_extension in [".jpg", ".jpeg", ".png"]:
+                os.rename(file, f"{self.path}\image{img_number}.{file_extension}")
+                #print(f"{self.path}\image{img_number}{file_extension}")
+                img_number += 1
+            elif file_extension == ".dat":
+                os.rename(file, f"{self.path}\image{dat_number}.dat")
+                #print(f"{self.path}\image{img_number}{file_extension}")
+                dat_number += 1
+            else:
+                raise AttributeError("Incompatible/misnamed file found in directory")
     
 
     
