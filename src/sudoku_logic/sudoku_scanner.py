@@ -17,7 +17,7 @@ class SudokuImage:
         self.c = c
 
     def return_board(self, debug=False):
-        """Finds all the sudoku cells in the image, "extracts" the digits images and their positions into respective arrays and then
+        """Finds the board location, then all the sudoku cells in the image, "extracts" the digits images and their positions into respective arrays and then
         feeds the information into predict_board to receive all the actual numerical digits in string form. 
 
         Args:
@@ -26,9 +26,9 @@ class SudokuImage:
         Returns:
             str: String format of actual board
         """
-        warped_board, warped_board_binary, board_size = self.find_board_location(debug)
+        warped_board, transformation_matrix, board_loc, board_dimensions = self.find_board_location(debug)
 
-        cells = self.split_image_to_cells(warped_board_binary, board_size)
+        cells = self.split_image_to_cells(warped_board, board_dimensions)
         
         digits, digit_positions = self.extract_digits(cells)
         
@@ -57,10 +57,10 @@ class SudokuImage:
             debug (bool, optional): Boolean clause to determine if to display results in debugging mode. Defaults to False.
 
         Returns:
-            warped: Image, warped image of the AOI
             warped_binary: warped binary image of the AOI
-            board_size: int, literally just the board size...
-        
+            matrix: Homography/Transformation matrix that caused the perspective warp.
+            board_location: 4 corners of the sudoku board.
+            board_dimensions: Array containing img_width, img_height
         Raises:
             Nothing
         """
@@ -98,45 +98,42 @@ class SudokuImage:
         
         # Returns top-left x,y coordinates of rectangle along with width and height.
         imgx, imgy, imgw, imgh = cv.boundingRect(board_loc)
-        board_size = max(imgw, imgh)
 
-        warped, warped_binary = self.warp_perspective(self.img.copy(), image_binary, board_loc, board_size)
+        warped_binary, matrix = self.warp_perspective(image_binary, board_loc, [imgw, imgh])
         
         if debug:
             cv.polylines(self.img, np.int32([board_loc_original]), True, 255, 5) #draw board square onto original image.
+            warped, _ = self.warp_perspective(self.img.copy(), board_loc, [imgw, imgh])
             multi_image_show_matplotlib([self.img, cv.cvtColor(self.img, cv.COLOR_BGR2GRAY), image_binary, img_for_contour, warped, warped_binary], 6, 2)
 
-        return warped, warped_binary, board_size
+        return warped_binary, matrix, board_loc, [imgw, imgh]
 
-
-
-    def warp_perspective(self, image, image_binary, location, size):
+    @staticmethod
+    def warp_perspective(self, image, location, board_dimensions):
         """
         Apply a perspective warp - a.k.a creating a new image with a warped perspective so that 
         the area we're interested in(ROI - Region of interest - the outerbound sudoku board grid) is the only thing
         in the new image, with a birds eye view
             
-
         Args:
-            image: Original sudoku image
-            image_binary: Binary version of sudoku image
+            image: Sudoku Board image.
             location: Location of the sudoku board corners in the source image
-            size: Size of output image
+            board_dimensions: Array containing img_width, img_height
         Returns:
-            SudokuBoard, BinarySudokuBoard Images
+            Warped SudokuBoard Image 
+            Homography/Transformation matrix that caused the perspective warp.
         """
-        #-------------------------- #Top Left#  #Bottom Left# #Bottom Right# #Top Right#
         top_left, top_right, bottom_left, bottom_right = location[0], location[1], location[2], location[3]
+        img_width, img_height = board_dimensions[0], board_dimensions[1]
 
         source_points = np.array([top_left, top_right, bottom_left, bottom_right], dtype="float32")
-        destination_points = np.array([[0, 0], [size, 0], [0, size], [size, size]], dtype="float32")
+        destination_points = np.array([[0, 0], [img_width - 1, 0], [0, img_height - 1], [img_width - 1, img_height - 1]], dtype="float32")
         # Apply Perspective Transform Algorithm
         # Creates an appropriate transformation matrix using the source points s.t that applying the matrix on the image yields the corresponding destination points for those points.
         matrix = cv.getPerspectiveTransform(source_points, destination_points)
-        # Applies the transformation matrix on the original image.
-        result = cv.warpPerspective(image, matrix, (size, size))
-        result_binary = cv.warpPerspective(image_binary, matrix, (size, size))
-        return result, result_binary
+        # Applies the transformation matrix on the image.
+        result = cv.warpPerspective(image, matrix, (img_width, img_height))
+        return result, matrix
     
 
     def split_image_to_cells(self, warped_image, board_size):
